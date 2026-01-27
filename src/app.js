@@ -2176,4 +2176,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     log('SOVEREIGN_CORE_ONLINE');
 });
-</script>
