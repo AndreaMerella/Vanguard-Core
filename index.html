@@ -666,7 +666,55 @@
         body.vhs #stage::before { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px); animation: vhs-track 0.1s steps(3) infinite; opacity: 0.6; }
         @keyframes vhs-track { 0% { background-position: 0 0; } 100% { background-position: 0 4px; } }
         body.crt #stage::after { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%); }
-    </style>
+    /* --- SOVEREIGN MOBILE ADAPTATION --- */
+@media screen and (max-width: 950px) {
+    /* Stack UI vertically on mobile */
+    #main-container {
+        flex-direction: column !important;
+        height: 100vh;
+    }
+
+    /* Step 1: Center the Stage */
+    #stage {
+        order: 2; /* Moves screen to middle position */
+        flex: 1;  /* Makes it fill all available center space */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        min-height: 50vh; 
+    }
+
+    /* Ensure canvas fits to screen [Saved Info] */
+    #vj-canvas {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain;
+    }
+}
+
+/* Step 2: Landscape Rotation Prompt */
+@media screen and (max-width: 900px) and (orientation: portrait) {
+    body::after {
+        content: "DRIS//core: ROTATE DEVICE FOR FULL BROADCAST MODE";
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: #050505;
+        color: #00f3ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family: monospace;
+        z-index: 9999;
+        padding: 40px;
+        box-sizing: border-box;
+    }
+}
+</style>
     <meta name="theme-color" content="#00f3ff">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
