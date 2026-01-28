@@ -801,6 +801,46 @@
 .q-label {
     opacity: 0.5;
     font-size: 9px;
+}/* ════════════════════════════════════════════════════════════════ */
+/* DRIS//core SIGNATURE BRANDING DNA */
+/* ════════════════════════════════════════════════════════════════ */
+
+.station-bug.cyan { 
+    color: var(--c); 
+    text-shadow: 0 0 10px var(--c); 
+}
+
+.station-bug.magenta { 
+    color: var(--m); 
+    text-shadow: 0 0 10px var(--m); 
+    font-style: italic; 
+}
+
+.station-bug.gold { 
+    color: var(--y); 
+    text-shadow: 0 0 15px rgba(255,215,0,0.5); 
+    font-weight: 900; 
+}
+
+.station-bug.vanguard { 
+    color: #fff; 
+    text-shadow: 2px 0 #ff0055, -2px 0 #00ffcc; 
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Tactical Scale Support */
+#station-bug {
+    transition: transform 0.1s ease-out; /* Makes resizing feel smooth, not jerky */
+    transform-origin: center center;
+    cursor: move;
+}
+
+#station-bug img {
+    max-height: 100%;
+    width: auto;
+    display: block;
+    pointer-events: none;
 }</style>
     <meta name="theme-color" content="#00f3ff">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

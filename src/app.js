@@ -149,7 +149,9 @@ const APP = {
     bug: {
         visible: true,
         text: 'DRIS//core',
-        image: null
+        image: null,
+        scale: 1.0,      // New: Professional sizing
+        style: 'cyan'    // New: Signature Branding DNA
     },
 
     lowerThird: {
