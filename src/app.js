@@ -150,8 +150,8 @@ const APP = {
         visible: true,
         text: 'DRIS//core',
         image: null,
-        scale: 1.0,      // New: Professional sizing
-        style: 'cyan'    // New: Signature Branding DNA
+        scale: 1.0,      // Tactical Sizing
+        style: 'cyan'    // Signature Branding Style
     },
 
     lowerThird: {
@@ -734,13 +734,22 @@ function hideLowerThird() {
 // ═══════════════════════════════════════════════════════════════════════════
 function updateBug() {
     const bug = $('station-bug');
+    
+    // 1. Apply Visibility and Signature Style DNA
+    // This clears old styles and injects the one from the dropdown
+    bug.className = `station-bug ${APP.bug.style || 'cyan'}`;
+    if (!APP.bug.visible) bug.classList.add('hidden');
+
+    // 2. Render Content (Image priority, fallback to Text)
     if (APP.bug.image) {
-        // Clear text and show IMAGE ONLY
-        bug.innerHTML = `<img src="${APP.bug.image}" alt="Logo" style="display:block; max-height:60px;">`;
+        bug.innerHTML = `<img src="${APP.bug.image}" alt="Logo">`;
     } else {
-        // Clear image and show TEXT ONLY
         bug.textContent = APP.bug.text || 'DRIS//core';
     }
+    
+    // 3. Apply Tactical Scaling
+    // This ensures the zoom level is maintained during style swaps
+    bug.style.transform = `scale(${APP.bug.scale || 1})`;
 }
 
 function toggleBug() {
@@ -1233,73 +1242,51 @@ function setSpatialMode(mode) {
     
     switch(mode) {
         case 'stereo':
-            // Standard stereo - sound directly in front
+            APP.audio.spatialEnabled = false; 
             APP.audio.panner.panningModel = 'equalpower';
             positionAudio(0, 0, -1);
             log('MODE: STEREO');
             break;
             
         case '3d':
-            // HRTF binaural 3D positioning
+            APP.audio.spatialEnabled = true; 
             APP.audio.panner.panningModel = 'HRTF';
             APP.audio.panner.distanceModel = 'inverse';
-            APP.audio.panner.refDistance = 1;
-            APP.audio.panner.maxDistance = 10000;
-            APP.audio.panner.rolloffFactor = 1;
-            
-            // Position listener facing forward
-            if (listener.forwardZ) {
-                listener.positionX.value = 0;
-                listener.positionY.value = 0;
-                listener.positionZ.value = 0;
-                listener.forwardX.value = 0;
-                listener.forwardY.value = 0;
-                listener.forwardZ.value = -1;
-                listener.upX.value = 0;
-                listener.upY.value = 1;
-                listener.upZ.value = 0;
-            }
-            
             positionAudio(0, 0, -2);
             log('MODE: 3D_HRTF');
             break;
             
         case 'dolby':
-            // Dolby Atmos simulation - wider soundstage, height cues
+            APP.audio.spatialEnabled = true; 
             APP.audio.panner.panningModel = 'HRTF';
             APP.audio.panner.distanceModel = 'linear';
-            APP.audio.panner.refDistance = 1;
-            APP.audio.panner.maxDistance = 100;
-            APP.audio.panner.rolloffFactor = 0.5;
+            positionAudio(0, 5, -2); 
             
-            // Dolby-style: wider cone for immersive feel
-            APP.audio.panner.coneInnerAngle = 360;
-            APP.audio.panner.coneOuterAngle = 360;
-            APP.audio.panner.coneOuterGain = 1;
-            
-            // Simulate Atmos "dome" - sound from above and around
-            if (listener.forwardZ) {
-                listener.positionX.value = 0;
-                listener.positionY.value = 0;
-                listener.positionZ.value = 0;
-                listener.forwardX.value = 0;
-                listener.forwardY.value = 0;
-                listener.forwardZ.value = -1;
-                listener.upX.value = 0;
-                listener.upY.value = 1;
-                listener.upZ.value = 0;
-            }
-            
-            // Position slightly above and in front (Atmos height channel feel)
-            positionAudio(0, 1, -3);
-            
-            // Boost compressor for Dolby loudness profile
             if (APP.audio.compressor) {
                 APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
-                APP.audio.compressor.ratio.setValueAtTime(8, APP.audio.ctx.currentTime);
+                APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
             }
+            log('MODE: DOLBY_ATMOS_v22_LOCKED');
+            break;
+    }
+    }
             
-            log('MODE: DOLBY_ATMOS');
+        case 'dolby':
+            APP.audio.panner.panningModel = 'HRTF';
+            APP.audio.panner.distanceModel = 'linear';
+            
+            // AUTO-ENABLE: Critical for coordinate updates
+            APP.audio.spatialEnabled = true; 
+
+            // Shift position to 5m high and 2m back for overhead height
+            positionAudio(0, 5, -2); 
+            
+            if (APP.audio.compressor) {
+                // Tighten for high-density "broadcast glue" sound
+                APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
+                APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
+            }
+            log('MODE: DOLBY_ATMOS_v22_LOCKED');
             break;
     }
 }
@@ -1315,7 +1302,11 @@ function toggleSpatialAudio() {
 
 // Position audio in 3D space (x: left/right, y: up/down, z: front/back)
 function positionAudio(x, y, z) {
-    if (!APP.audio.panner || !APP.audio.spatialEnabled) return;
+    // If panner doesn't exist, we stop.
+    if (!APP.audio.panner) return;
+    
+    // We force spatialEnabled to true so coordinates always update
+    APP.audio.spatialEnabled = true; 
     
     if (APP.audio.panner.positionX) {
         APP.audio.panner.positionX.setValueAtTime(x, APP.audio.ctx.currentTime);
@@ -1682,8 +1673,11 @@ function masterReset() {
     $('sl-rgb').value = 0; $('val-rgb').textContent = '0';
     $('sl-pix').value = 1; $('val-pix').textContent = '1';
     
-    ['btn-trails', 'btn-rgb', 'btn-pixelate', 'btn-bass-link', 'btn-rumble', 'btn-ui-react'].forEach(id => $(id).classList.remove('on'));
-    
+const uiResetList = ['btn-trails', 'btn-rgb', 'btn-pixelate', 'btn-bass-link', 'btn-rumble', 'btn-ui-react', 'btn-spatial', 'btn-dolby'];
+    uiResetList.forEach(id => {
+        const el = $(id);
+        if (el) el.classList.remove('on');
+    });    
     triggerImpact();
     log('MASTER_RESET');
 }
@@ -1786,20 +1780,21 @@ function loadSession() {
         $('sl-h').value = APP.vj.hue;
         $('val-h').textContent = APP.vj.hue + '°';
 
-        // 3. Sync UI Buttons
-        $('btn-trails')?.classList.toggle('on', APP.vj.trailsEnabled);
-        $('btn-rgb')?.classList.toggle('on', APP.vj.rgbEnabled);
-        $('btn-pixelate')?.classList.toggle('on', APP.vj.pixelateEnabled);
-        $('btn-rumble')?.classList.toggle('on', APP.vj.rumbleEnabled);
-        $('btn-ui-react')?.classList.toggle('on', APP.vj.uiReactivity);
+        // ——— FIND THIS SECTION IN loadSession() AND REPLACE ———
+// 3. Sync UI Buttons (Sovereign Safe-Sync)
+const uiButtons = {
+    'btn-trails': APP.vj.trailsEnabled,
+    'btn-rgb': APP.vj.rgbEnabled,
+    'btn-pixelate': APP.vj.pixelateEnabled,
+    'btn-rumble': APP.vj.rumbleEnabled,
+    'btn-ui-react': APP.vj.uiReactivity
+};
 
-        updateBug();
-        log('SESSION_LOAD_OK');
-        triggerImpact(); // Visual confirmation
-    } catch (e) {
-        log('LOAD_ERR: DATA_CORRUPT');
-    }
-}
+Object.entries(uiButtons).forEach(([id, state]) => {
+    const el = $(id);
+    if (el) el.classList.toggle('on', !!state);
+});
+// ——————————————————————————————————————————————————————
 
 // Add this so you can actually use the .vgd files you export
 function importVGD(input) {
@@ -2099,6 +2094,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Station Bug
     $('btn-upload-logo').onclick = () => $('file-logo').click();
+    // Signature Style Selector: Changes the visual DNA of the branding
+    if ($('bug-style-select')) {
+        $('bug-style-select').onchange = (e) => {
+            APP.bug.style = e.target.value;
+            
+            // Execute the redraw engine
+            updateBug(); 
+            
+            // Log the tactical shift
+            log(`DNA_STYLE: ${e.target.value.toUpperCase()}`);
+        };
+    }
     // Master Clear for Station Bug
 // MASTER CLEAR FOR STATION BUG
     $('btn-clear-logo').onclick = () => { 
@@ -2141,7 +2148,20 @@ document.addEventListener('DOMContentLoaded', () => {
             bugDragging = false;
             $('station-bug').style.cursor = 'move';
         }
-    });
+    });// BROADCAST WEAPON: Tactical Scaling (Hover + Scroll)
+    $('station-bug').addEventListener('wheel', (e) => {
+        if (bugDragging) return; // Don't scale while moving
+        
+        e.preventDefault();
+        // Tactical Increment: 0.05 per notch
+        const direction = e.deltaY > 0 ? -0.05 : 0.05;
+        
+        // Clamp: Min 40% size, Max 400% size
+        APP.bug.scale = Math.min(4, Math.max(0.4, (APP.bug.scale || 1) + direction));
+        
+        // Instant visual feedback
+        $('station-bug').style.transform = `scale(${APP.bug.scale})`;
+    }, { passive: false });
     
     // Audio
     $('btn-audio').onclick = () => { $('file-audio').click(); };
