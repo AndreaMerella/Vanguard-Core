@@ -4,130 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DRIS//core VNGRD v22.1 // HYBRID BROADCAST</title>
-    
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    
     <style>
-        /* --- CORE STYLES --- */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap');
         
         :root { 
-            --accent: #00f3ff; --accent-dim: rgba(0, 243, 255, 0.2);
-            --bg: #050508; --panel: #08080c; --border: #151520;
-            --text: #a0a0a8; --g: #00ff88; --r: #ff3333; --y: #ffcc00;
+            --accent: #00f3ff; --accent-dim: rgba(0, 243, 255, 0.2); --accent-glow: rgba(0, 243, 255, 0.5);
+            --p: #ff0055; --c: #00f3ff; --g: #00ff88; --y: #ffcc00; --r: #ff3333; --o: #ff9d00; --v: #b000ff;
+            --bg: #050508; --panel: #08080c; --border: #151520; --text: #a0a0a8;
         }
 
-        body { 
-            background: var(--bg); color: var(--text); margin: 0; overflow: hidden; 
-            font-family: 'JetBrains Mono', monospace; height: 100vh; width: 100vw;
-            user-select: none; -webkit-user-drag: none;
-        }
+        body, html { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; overflow: hidden; height: 100vh; width: 100vw; margin: 0; }
+        
+        /* THEMES */
+        body.theme-magenta { --accent: #ff0055; --accent-dim: rgba(255,0,85,0.2); }
+        body.theme-gold { --accent: #ffd700; --accent-dim: rgba(255,215,0,0.2); }
 
-        /* --- STAGE LAYOUT --- */
-        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 45px; background: #0c0c12; border-bottom: 1px solid var(--border); z-index: 5000; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
-        #bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 55px; background: #0c0c12; border-top: 1px solid var(--border); z-index: 5000; }
+        /* STAGE & CANVAS */
+        #stage { position: fixed; top: 45px; left: 200px; right: 200px; bottom: 55px; background: #000; border: 1px solid var(--border); overflow: hidden; }
+        #vj-canvas { width: 100%; height: 100%; }
         
-        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); z-index: 4000; overflow-y: auto; }
-        #left-panel { left: 0; border-right: 1px solid rgba(0,243,255,0.1); }
-        #right-panel { right: 0; border-left: 1px solid rgba(0,243,255,0.1); }
+        /* LOGO FLASH & IMPACTS */
+        body.logo-flash { animation: flash 0.4s ease; }
+        @keyframes flash { 0% { filter: brightness(1); } 50% { filter: brightness(2.5); } 100% { filter: brightness(1); } }
+        body.impact-flash #stage { animation: impact 0.2s ease; }
+        @keyframes impact { 0% { filter: invert(1); } 100% { filter: invert(0); } }
 
-        #stage { position: fixed; top: 45px; left: 200px; right: 200px; bottom: 55px; background: #000; overflow: hidden; }
-        #vj-canvas { width: 100%; height: 100%; display: block; }
-        
-        /* --- UI ELEMENTS --- */
-        .logo { font-family: 'Orbitron'; font-weight: 900; font-size: 24px; color: #fff; letter-spacing: -1px; }
-        .m1 { text-shadow: 0 0 15px var(--accent); }
-        
-        .btn { width: 100%; padding: 8px; background: #111; border: 1px solid var(--border); color: #888; margin-bottom: 5px; cursor: pointer; text-align: left; font-family: inherit; font-size: 10px; }
-        .btn:hover { background: #1a1a1a; color: #fff; border-color: #333; }
-        .btn.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 8px var(--accent-dim); }
-        .btn.rec { border-color: rgba(255,0,0,0.3); color: var(--r); }
+        /* SIDEBARS */
+        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); overflow-y: auto; z-index: 4000; }
+        .sidebar::-webkit-scrollbar { display: none; }
+        #left-panel { left: 0; border-right: 1px solid var(--accent-dim); }
+        #right-panel { right: 0; border-left: 1px solid var(--accent-dim); }
 
-        .slider-wrap { margin-bottom: 8px; padding: 0 5px; }
-        input[type=range] { width: 100%; height: 3px; background: #333; -webkit-appearance: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--accent); cursor: pointer; }
+        /* BUTTONS & UI */
+        .btn { display: block; width: 100%; padding: 8px; margin-bottom: 5px; background: #111; border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 10px; text-align: left; }
+        .btn:hover { border-color: var(--accent); color: #fff; }
+        .btn.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+        .btn.rec { color: var(--r); border-color: var(--r); }
 
-        /* --- PREVIEW & LOGS --- */
-        #cam-preview { height: 100px; background: #000; border: 1px solid #333; margin: 10px 5px; position: relative; }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        /* TOP & BOTTOM BARS */
+        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 45px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; z-index: 5000; }
+        #bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 55px; background: var(--panel); border-top: 1px solid var(--border); z-index: 5000; display: flex; flex-direction: column; }
         
-        #sys-log { position: fixed; bottom: 55px; right: 200px; width: 250px; height: 100px; pointer-events: none; overflow: hidden; font-size: 9px; padding: 5px; display: flex; flex-direction: column-reverse; z-index: 6000; text-shadow: 1px 1px 0 #000; }
-        .log-line { color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+        #clock { font-family: 'Orbitron'; font-size: 16px; color: var(--accent); }
+        #station-bug { position: absolute; top: 20px; left: 20px; z-index: 2000; font-family: 'Orbitron'; cursor: move; }
+        #station-bug.hidden { display: none; }
         
-        .blur-reveal { position: fixed; inset: 0; backdrop-filter: blur(20px); z-index: 9999; transition: opacity 1s; pointer-events: none; background: rgba(0,0,0,0.2); }
-        
-        /* RESPONSIVE */
-        @media(max-width: 900px) {
-            .sidebar { display: none; } /* Mobile simplification */
-            #stage { left: 0; right: 0; }
-        }
+        /* BLUR REVEAL */
+        .blur-reveal { position: fixed; inset: 0; backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); z-index: 99999; pointer-events: none; }
+
+        /* VU BARS */
+        #vu { display: flex; gap: 2px; height: 30px; align-items: flex-end; }
+        .vu-bar { flex: 1; background: var(--g); min-height: 2px; }
+
+        /* SLIDERS */
+        .slider-wrap { margin-bottom: 10px; }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: #333; height: 4px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--accent); cursor: pointer; }
+
+        /* LOGO MORPHS */
+        .logo { font-family: 'Orbitron'; font-weight: 900; font-size: 22px; cursor: pointer; }
+        .m1 { color: var(--accent); text-shadow: 0 0 10px var(--accent); }
+        .m2 { color: var(--p); text-shadow: 0 0 10px var(--p); }
+        /* ... rest of morph classes ... */
     </style>
 </head>
-<body>
+<body class="theme-cyan">
+    <svg style="position:absolute; width:0; height:0;">
+        <filter id="chromatic-ghost">
+            <feColorMatrix type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="red"/>
+            <feOffset in="red" dx="-5" dy="0" result="red-shift"/>
+            <feBlend in="red-shift" in2="SourceGraphic" mode="screen"/>
+        </filter>
+    </svg>
 
     <div class="blur-reveal" id="blur-reveal"></div>
-    
-    <div id="top-bar">
-        <div class="logo m1" id="main-logo">DRIS//core</div>
-        <div style="display:flex; gap:15px; font-size:10px;">
-            <span id="fps-val" style="color:var(--g)">60 FPS</span>
-            <span id="clock" style="color:var(--accent)">00:00:00</span>
+
+    <header id="top-bar">
+        <div id="brand"><span class="logo m1" id="main-logo">DRIS//core</span></div>
+        <div id="status-bar" style="display:flex; gap:15px; align-items:center;">
+            <div id="fps-val" style="color:var(--g)">60</div>
+            <div id="clock">00:00:00</div>
+            <div class="dot" id="main-dot" style="width:8px; height:8px; border-radius:50%; background:var(--g);"></div>
+            <div id="status-text" style="font-size:10px;">STANDBY</div>
+            <div id="tally" style="display:none; color:var(--r); font-weight:bold;">LIVE</div>
         </div>
-    </div>
+    </header>
 
     <main id="stage">
         <canvas id="vj-canvas"></canvas>
-        <div id="sys-log"></div>
+        <div id="station-bug">DRIS//core</div>
+        <div id="lower-third" style="position:absolute; bottom:40px; left:40px; display:none;">
+            <div class="lt-container" style="background:rgba(0,0,0,0.8); padding:10px; border-left:4px solid var(--accent);">
+                <div id="lt-title-text" style="font-family:Orbitron; font-size:20px;">GUEST</div>
+                <div id="lt-subtitle-text" style="color:var(--accent)">TITLE</div>
+            </div>
+        </div>
+        <div id="countdown" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); align-items:center; justify-content:center; font-size:120px; font-family:Orbitron; color:var(--accent); z-index:3000;">
+            <div id="countdown-num">3</div>
+        </div>
     </main>
 
     <aside class="sidebar" id="left-panel">
         <div style="padding:10px;">
-            <div style="font-size:10px; color:var(--accent); margin-bottom:5px;">CAMERA OPS</div>
-            <div id="cam-preview"><video id="preview-vid" autoplay muted playsinline></video></div>
-            
-            <button class="btn" id="btn-init-cam">INITIALIZE SENSORS</button>
-            <div id="cam-ctrls" style="display:none">
-                <button class="btn" id="btn-go-live" style="color:var(--y)">GO LIVE</button>
+            <div id="cam-preview" style="display:none; height:100px; background:#000; margin-bottom:10px; position:relative;">
+                <video id="preview-vid" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                <div class="preview-label" style="position:absolute; bottom:5px; left:5px; font-size:8px;">PREVIEW</div>
+                <div id="rec-dot" style="position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%; background:var(--r); display:none;"></div>
             </div>
-            <div id="live-ctrls" style="display:none">
-                <button class="btn rec" id="btn-end">END BROADCAST</button>
+            <button class="btn" id="btn-init-cam">SENSORS ONLINE</button>
+            <div id="cam-ctrls" style="display:none;">
+                <button class="btn" id="btn-go-live">GO LIVE</button>
+                <button class="btn" id="btn-kill">KILL CAMERA</button>
+            </div>
+            <div id="live-ctrls" style="display:none;">
+                <button class="btn rec" id="btn-rec">● REC</button>
+                <button class="btn" id="btn-clip">CLIP 10s</button>
+                <button class="btn" id="btn-mic">MIC</button>
+                <button class="btn" id="btn-end">END LIVE</button>
             </div>
 
-            <div style="margin-top:20px; font-size:10px; color:var(--accent); margin-bottom:5px;">MEDIA DECK</div>
-            <button class="btn" id="btn-media">IMPORT FILES</button>
-            <button class="btn" id="btn-rotate">NEXT ASSET [SPACE]</button>
+            <div style="margin-top:20px; color:var(--accent); font-size:10px;">MEDIA DECK</div>
+            <button class="btn" id="btn-media">IMPORT MEDIA <span id="q-count">0</span></button>
+            <div style="display:flex; gap:2px;">
+                <button class="btn" id="btn-prev">PREV</button>
+                <button class="btn" id="btn-rotate">NEXT</button>
+            </div>
+            <button class="btn" id="btn-cycle">CYCLE: OFF</button>
+            <input type="number" id="cycle-time" value="8" class="btn" style="width:100%; background:#000;">
+
+            <div style="margin-top:20px; color:var(--accent); font-size:10px;">COMMAND</div>
+            <button class="btn" id="btn-eject">EJECT</button>
+            <button class="btn" id="btn-master-reset">RESET</button>
+            <button class="btn" id="btn-purge" style="color:var(--r)">PURGE ALL</button>
         </div>
     </aside>
 
     <aside class="sidebar" id="right-panel">
         <div style="padding:10px;">
-            <div style="font-size:10px; color:var(--accent); margin-bottom:5px;">AUDIO ENGINE</div>
-            <div id="vu" style="height:20px; background:#111; margin-bottom:5px; display:flex; align-items:flex-end;">
-                </div>
-            <button class="btn" id="btn-audio">LOAD TRACK</button>
+            <div id="audio-dot" class="off" style="font-size:10px; color:var(--accent)">AUDIO ENGINE</div>
+            <div id="vu"></div>
+            <div id="track-info" style="font-size:9px; margin-bottom:10px;">NO TRACK</div>
+            <button class="btn" id="btn-audio">LOAD AUDIO</button>
+            <button class="btn" id="btn-next-track">NEXT TRACK</button>
+            <button class="btn" id="btn-stop">STOP</button>
+            
             <div style="display:flex; gap:2px;">
                 <button class="btn" id="btn-stereo">STEREO</button>
                 <button class="btn" id="btn-spatial">3D</button>
                 <button class="btn" id="btn-dolby">DOLBY</button>
             </div>
+            <select id="audio-output" class="btn" style="width:100%; background:#000;"></select>
 
-            <div style="margin-top:20px; font-size:10px; color:var(--accent); margin-bottom:5px;">VJ PROCESSOR</div>
-            <div class="slider-wrap"><input type="range" id="sl-b" min="0" max="200" value="100"></div>
-            <div class="slider-wrap"><input type="range" id="sl-c" min="0" max="200" value="100"></div>
-            <button class="btn" id="btn-trails">TRAILS FX</button>
+            <div style="margin-top:20px; color:var(--accent); font-size:10px;">VJ ENGINE</div>
+            <div class="slider-wrap">B: <span id="val-b">100%</span><input type="range" id="sl-b" min="30" max="170" value="100"></div>
+            <div class="slider-wrap">C: <span id="val-c">100%</span><input type="range" id="sl-c" min="30" max="170" value="100"></div>
+            <div class="slider-wrap">S: <span id="val-s">100%</span><input type="range" id="sl-s" min="0" max="200" value="100"></div>
+            <div class="slider-wrap">H: <span id="val-h">0°</span><input type="range" id="sl-h" min="0" max="360" value="0"></div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:2px;">
+                <button class="btn" id="btn-stutter" style="width:48%">STUTTER</button>
+                <button class="btn" id="btn-invert" style="width:48%">INVERT</button>
+                <button class="btn" id="btn-crush" style="width:48%">CRUSH</button>
+                <button class="btn" id="btn-rumble" style="width:48%">SEISMIC</button>
+            </div>
         </div>
     </aside>
 
-    <div id="bottom-bar" style="display:flex; align-items:center; padding:0 20px; font-size:10px; color:#555;">
-        <span>SYSTEM ONLINE // UPTIME: <span id="uptime" style="color:#fff">00:00:00</span></span>
-        <span style="margin-left:auto;">RES: <span id="res">1920x1080</span></span>
-    </div>
+    <footer id="bottom-bar">
+        <div id="ticker-wrap" style="flex:1; background:rgba(0,0,0,0.5); overflow:hidden; display:flex; align-items:center;">
+            <div id="ticker-text" style="white-space:nowrap; padding-left:100%; animation: scroll 30s linear infinite;">
+                <span id="ticker-crypto">BTC $---</span> // DRIS//core VNGRD // BROADCAST ONLINE
+            </div>
+        </div>
+        <div id="info-bar" style="padding:5px 15px; font-size:9px; display:flex; justify-content:space-between;">
+            <div>UPTIME: <span id="uptime" style="color:#fff">00:00:00</span></div>
+            <div>RES: <span id="res">1920x1080</span></div>
+        </div>
+    </footer>
 
-    <input type="file" id="file-media" multiple style="display:none">
-    <input type="file" id="file-audio" style="display:none">
-    <audio id="audio-el" style="display:none"></audio>
+    <div id="sys-log" style="position:fixed; bottom:60px; right:210px; width:180px; font-size:8px; color:rgba(255,255,255,0.3); pointer-events:none;"></div>
+    
+    <div id="media-container" style="display:none;"></div>
+    <input type="file" id="file-media" multiple accept="image/*,video/*" style="display:none;">
+    <input type="file" id="file-audio" multiple accept="audio/*" style="display:none;">
+    <input type="file" id="file-logo" accept="image/*" style="display:none;">
+    <audio id="audio-el" crossorigin="anonymous"></audio>
 
     <script type="module" src="./src/app.js"></script>
-
+    <style>
+        @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    </style>
 </body>
 </html>
