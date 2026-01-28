@@ -1,4 +1,5 @@
 
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DRIS//core VNGRD v22.1 — HYBRID BROADCAST MONSTER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -743,11 +744,16 @@ function toggleBug() {
 
 function loadLogoFile(input) {
     if (!input.files.length) return;
-    APP.bug.image = URL.createObjectURL(input.files[0]);
-    updateBug();
-    log('LOGO_UPLOADED');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        // This converts the image to a permanent Base64 string
+        APP.bug.image = e.target.result; 
+        updateBug();
+        saveSession(); // Force an auto-save so it remembers the logo
+        log('LOGO_PERMANENT_SAVED');
+    };
+    reader.readAsDataURL(input.files[0]);
 }
-
 // Bug drag variables (initialized in DOMContentLoaded)
 let bugDragging = false, bugOffsetX = 0, bugOffsetY = 0;
 
@@ -1741,17 +1747,71 @@ async function fetchCrypto() {
 }
 
 function saveSession() {
-    localStorage.setItem('dris_v22', JSON.stringify({ theme: APP.state.theme, vj: APP.vj, bug: APP.bug }));
-    log('SAVED');
+    localStorage.setItem('dris_v22', JSON.stringify({ 
+        theme: APP.state.theme, 
+        vj: APP.vj, 
+        bug: APP.bug 
+    }));
+    log('SESSION_SAVED');
 }
 
 function loadSession() {
-    const data = JSON.parse(localStorage.getItem('dris_v22') || '{}');
-    if (data.theme) setTheme(data.theme);
-    if (data.vj) Object.assign(APP.vj, data.vj);
-    if (data.bug) Object.assign(APP.bug, data.bug);
-    updateBug();
-    log('LOADED');
+    const rawData = localStorage.getItem('dris_v22');
+    if (!rawData) return;
+
+    try {
+        const data = JSON.parse(rawData);
+        
+        // 1. Apply Logic Data
+        if (data.theme) setTheme(data.theme);
+        if (data.vj) Object.assign(APP.vj, data.vj);
+        if (data.bug) Object.assign(APP.bug, data.bug);
+
+        // 2. Sync UI Sliders & Text
+        const sliders = { 'sl-b': 'brightness', 'sl-c': 'contrast', 'sl-s': 'saturation' };
+        Object.entries(sliders).forEach(([id, prop]) => {
+            if ($(id)) {
+                $(id).value = APP.vj[prop] * 100;
+                $(`val-${id.split('-')[1]}`).textContent = Math.round(APP.vj[prop] * 100) + '%';
+            }
+        });
+        
+        $('sl-h').value = APP.vj.hue;
+        $('val-h').textContent = APP.vj.hue + '°';
+
+        // 3. Sync UI Buttons
+        $('btn-trails')?.classList.toggle('on', APP.vj.trailsEnabled);
+        $('btn-rgb')?.classList.toggle('on', APP.vj.rgbEnabled);
+        $('btn-pixelate')?.classList.toggle('on', APP.vj.pixelateEnabled);
+        $('btn-rumble')?.classList.toggle('on', APP.vj.rumbleEnabled);
+        $('btn-ui-react')?.classList.toggle('on', APP.vj.uiReactivity);
+
+        updateBug();
+        log('SESSION_LOAD_OK');
+        triggerImpact(); // Visual confirmation
+    } catch (e) {
+        log('LOAD_ERR: DATA_CORRUPT');
+    }
+}
+
+// Add this so you can actually use the .vgd files you export
+function importVGD(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            // Save to localStorage so loadSession can pick it up
+            localStorage.setItem('dris_v22', JSON.stringify(data));
+            loadSession(); 
+            log('VGD_DNA_INJECTED');
+        } catch (err) {
+            log('VGD_IMPORT_ERR');
+        }
+    };
+    reader.readAsText(file);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2108,6 +2168,19 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-save').onclick = saveSession;
     $('btn-load').onclick = loadSession;
     $('btn-export-dna').onclick = exportDNA;
+    // --- VGD FILE IMPORT WIRING ---
+    const vgdInput = document.createElement('input');
+    vgdInput.type = 'file';
+    vgdInput.accept = '.vgd';
+    vgdInput.style.display = 'none';
+    vgdInput.onchange = e => importVGD(e.target);
+    document.body.appendChild(vgdInput);
+
+    // This makes it so RIGHT-CLICKING the Load button opens a file browser
+    $('btn-load').oncontextmenu = (e) => { 
+        e.preventDefault(); 
+        vgdInput.click(); 
+    };
     $('btn-projector').onclick = openProjector;
     $('btn-capture30').onclick = capture30s;
     $('btn-enter-vr').onclick = enterVR;
