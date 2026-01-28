@@ -1083,7 +1083,6 @@ function updateVU() {
     APP.audio.analyzer.getByteFrequencyData(APP.audio.vuData);
     const bars = $('vu').children;
     
-    // Performance: Only update VU bars if they actually exist
     if (bars.length > 0) {
         for (let i = 0; i < bars.length; i++) {
             bars[i].style.height = Math.max(2, (APP.audio.vuData[i * 2] / 255) * 28) + 'px';
@@ -1093,55 +1092,45 @@ function updateVU() {
     const currentBass = (APP.audio.vuData[0] + APP.audio.vuData[1] + APP.audio.vuData[2]) / 3;
     const bassDelta = currentBass - APP.vj.lastBassLevel;
     APP.audio.bassLevel = currentBass;
-    
-    // SEISMIC ENGINE: Target ONLY the #stage, not the whole body
-    // REFINED SEISMIC ENGINE (Inside updateVU)
-    if (APP.vj.rumbleEnabled) {
-        if (bassDelta > 40 && currentBass > 150) {
-            APP.vj.shakeIntensity = Math.min(1.2, currentBass / 180);
-        }
-        
-        if (APP.vj.shakeIntensity > 0.05) {
-            applyGlobalShake(); // Calls the global engine
-            APP.vj.shakeIntensity *= 0.88;
-        } else {
-            APP.vj.shakeIntensity = 0;
-            const target = $('console-wrapper') || document.body;
-            target.style.transform = '';
-        }
-    }
-    
-    // PARTY MODE: Optimized skin swapping
+
+    // --- 1. PARTY MODE ENGINE ---
     if (APP.vj.uiReactivity) {
-        if (bassDelta > 45 && currentBass > 160) {
-            // Flash logo without forcing whole-page reflow where possible
+        if (currentBass > 100 && bassDelta > 30) { 
+            cyclePartyThemes(); 
             const logo = $('main-logo');
-            logo.style.filter = 'brightness(2)';
-            setTimeout(() => logo.style.filter = '', 150);
-            
-            if (bassDelta > 65 && Math.random() > 0.7) {
-                const themes = ['cyan', 'magenta', 'gold', 'purple', 'green'];
-                const next = themes[Math.floor(Math.random() * themes.length)];
-                if (next !== APP.state.theme) setTheme(next);
+            if (logo) {
+                logo.style.filter = 'brightness(2.5)';
+                setTimeout(() => logo.style.filter = '', 100);
             }
         }
     }
-    
-    APP.vj.lastBassLevel = currentBass;// --- PRICE-ACTION LOGO PULSE ---
-if (APP.vj.uiReactivity && APP.audio.bassLevel > 180) {
-    const btcUp = APP.state.lastPrices.btc > (APP.state.lastPrices.btc_prev || 0);
-    if (btcUp) {
-        const logo = $('main-logo');
-        logo.style.textShadow = `0 0 30px var(--accent), 0 0 60px var(--accent)`;
-        logo.style.transform = `scale(1.1)`;
-        setTimeout(() => {
-            logo.style.textShadow = '';
-            logo.style.transform = '';
-        }, 100);
+
+    // --- 2. SEISMIC ENGINE (Whole UI Rumble) ---
+    if (APP.vj.rumbleEnabled && bassDelta > 40 && currentBass > 150) {
+        APP.vj.shakeIntensity = Math.min(1.2, currentBass / 180);
     }
-}
-// Store prev for next frame comparison
-APP.state.lastPrices.btc_prev = APP.state.lastPrices.btc;
+
+    if (APP.vj.shakeIntensity > 0.05) {
+        applyGlobalShake();
+        APP.vj.shakeIntensity *= 0.9;
+    } else if (APP.vj.shakeIntensity !== 0) {
+        APP.vj.shakeIntensity = 0;
+        const target = $('console-wrapper') || document.body;
+        target.style.transform = '';
+    }
+    
+    // --- 3. PRICE-ACTION LOGO PULSE ---
+    if (APP.vj.uiReactivity && APP.audio.bassLevel > 180) {
+        const btcUp = APP.state.lastPrices.btc > (APP.state.lastPrices.btc_prev || 0);
+        if (btcUp) {
+            const logo = $('main-logo');
+            logo.style.textShadow = `0 0 30px var(--accent), 0 0 60px var(--accent)`;
+            setTimeout(() => { logo.style.textShadow = ''; }, 100);
+        }
+    }
+
+    APP.state.lastPrices.btc_prev = APP.state.lastPrices.btc;
+    APP.vj.lastBassLevel = currentBass;
 }
 
 function stopAudio() {
@@ -2210,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-invert').onclick = impactInvert;
     $('btn-crush').onclick = impactCrush;
     $('btn-rumble').onclick = () => { APP.vj.rumbleEnabled = !APP.vj.rumbleEnabled; $('btn-rumble').classList.toggle('on'); log('SEISMIC_' + (APP.vj.rumbleEnabled ? 'ON' : 'OFF')); };
-    $('btn-ui-react').onclick = () => { APP.vj.uiReactivity = !APP.vj.uiReactivity; $('btn-ui-react').classList.toggle('on'); log('PARTY_MODE_' + (APP.vj.uiReactivity ? 'ON' : 'OFF')); };
+    $('btn-ui-react').onclick = () => {      APP.vj.uiReactivity = !APP.vj.uiReactivity;      $('btn-ui-react').classList.toggle('on');           // IF TURNING ON: Give it a kickstart so you see it work immediately     if (APP.vj.uiReactivity) {         cyclePartyThemes();          triggerImpact(); // Add a visual flash so you know it's alive     }          log('PARTY_MODE_' + (APP.vj.uiReactivity ? 'ON' : 'OFF'));  };
     
     // VJ sliders
     $('sl-b').oninput = e => { APP.vj.brightness = e.target.value / 100; $('val-b').textContent = e.target.value + '%'; };
