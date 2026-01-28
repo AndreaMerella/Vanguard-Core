@@ -4,1196 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DRIS//core VNGRD v22.1 // HYBRID BROADCAST</title>
-    <!--
-    ═══════════════════════════════════════════════════════════════════════════
-    DRISCORE_VNGRD_v22.1 // HYBRID BROADCAST MONSTER
-    ═══════════════════════════════════════════════════════════════════════════
-    Build: 22.1.0 | Hybrid Layer Architecture
-    Features: Canvas VJ + HTML Overlays + Impact Physics + Carousel Mode
-    ═══════════════════════════════════════════════════════════════════════════
-    -->
+    
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=JetBrains+Mono:wght@300;400;500&family=Bebas+Neue&family=Russo+One&display=swap');
+        /* --- CORE STYLES --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap');
         
         :root { 
-            --accent: #00f3ff;
-            --accent-dim: rgba(0, 243, 255, 0.2);
-            --accent-glow: rgba(0, 243, 255, 0.5);
-            --p: #ff0055; --c: #00f3ff; --g: #00ff88; --y: #ffcc00; --r: #ff3333; --o: #ff9d00; --v: #b000ff;
-            --bg: #050508; --panel: #08080c; --panel-light: #0c0c12; --border: #151520; --border-light: #202030;
-            --text: #a0a0a8; --text-dim: #505058; --text-bright: #e8e8ec;
-        }
-        
-        /* THEMES */
-        body.theme-magenta { --accent: #ff0055; --accent-dim: rgba(255,0,85,0.2); --accent-glow: rgba(255,0,85,0.5); }
-        body.theme-green { --accent: #00ff88; --accent-dim: rgba(0,255,136,0.2); --accent-glow: rgba(0,255,136,0.5); }
-        body.theme-purple { --accent: #b000ff; --accent-dim: rgba(176,0,255,0.2); --accent-glow: rgba(176,0,255,0.5); }
-        body.theme-gold { --accent: #ffd700; --accent-dim: rgba(255,215,0,0.2); --accent-glow: rgba(255,215,0,0.5); }
-        body.theme-night { --accent: #334455; --accent-dim: rgba(51,68,85,0.2); --bg: #020204; --panel: #040408; }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { 
-            background: var(--bg); color: var(--text); 
-            font-family: 'JetBrains Mono', monospace; 
-            overflow: hidden; height: 100vh; width: 100vw; font-size: 12px;
-            overscroll-behavior: none; touch-action: none;
-        }
-        
-        * { -webkit-user-drag: none; user-select: none; }
-        input, textarea { user-select: text; }
-
-        /* SEISMIC SHAKE - Heavy 3D Physics */
-        body.bass-hit { animation: seismic-shake 0.1s ease; }
-        @keyframes seismic-shake { 
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(0); } 
-            25% { transform: translate3d(-8px, 6px, 0) rotate(-1.5deg); }
-            50% { transform: translate3d(6px, -4px, 0) rotate(1.2deg); }
-            75% { transform: translate3d(-4px, 3px, 0) rotate(-0.8deg); }
-        }
-        
-        /* LOGO FLASH */
-        body.logo-flash { animation: console-flash 0.4s ease; }
-        @keyframes console-flash { 0% { filter: brightness(1); } 20% { filter: brightness(2.5); } 100% { filter: brightness(1); } }
-
-        /* IMPACT FLASH - Theme Linked */
-        body.impact-flash #stage { animation: impact-pulse 0.2s ease; }
-        body.impact-flash .sidebar { animation: sidebar-flash 0.15s ease; }
-        @keyframes impact-pulse { 0%,100% { filter: none; } 50% { filter: brightness(1.5) contrast(1.3) saturate(1.5); } }
-        @keyframes sidebar-flash { 0%,100% { border-color: var(--border); } 50% { border-color: var(--accent); box-shadow: inset 0 0 30px var(--accent-dim); } }
-
-        /* ═══════════════════════════════════════════════════════════════
-           LOGO - 15 MORPHS (HTML OVERLAY)
-           ═══════════════════════════════════════════════════════════════ */
-        .logo { 
-            font-family: 'Orbitron', sans-serif; 
-            font-size: 36px; font-weight: 900;
-            letter-spacing: -2px; color: #fff;
-            cursor: pointer; user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        .logo:hover { transform: scale(1.05); filter: brightness(1.2); }
-        
-        .logo.m1 { color: #00f3ff; text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff; animation: pulse-glow 2s infinite; }
-        .logo.m2 { color: #ff0055; text-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055; animation: logo-float 3s infinite; }
-        .logo.m3 { color: #00ff88; text-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88; animation: shimmer 2.5s infinite; }
-        .logo.m4 { color: #ffcc00; text-shadow: 0 0 25px #ffcc00, 0 0 50px #ffcc00; animation: electric-surge 1.5s infinite; }
-        .logo.m5 { color: #ff6600; text-shadow: 0 0 20px #ff6600, 0 0 40px #ff6600; animation: fire-flicker 0.8s infinite; }
-        .logo.m6 { color: #ffffff; text-shadow: 0 0 25px #fff, 0 0 50px #fff; animation: holy-glow 3s infinite; }
-        .logo.m7 { color: #b000ff; text-shadow: 0 0 20px #b000ff, 0 0 40px #b000ff; animation: bounce 1s infinite; }
-        .logo.m8 { color: #ff6b9d; text-shadow: 0 0 20px #ff6b9d, 0 0 40px #ff6b9d; animation: shimmer 2s infinite; }
-        .logo.m9 { color: #00ffff; text-shadow: 0 0 25px #00ffff, 0 0 60px #00ffff; animation: electric-surge 2s infinite; }
-        .logo.m10 { color: #7fff00; text-shadow: 0 0 20px #7fff00, 0 0 40px #7fff00; animation: logo-float 2.5s infinite; }
-        .logo.m11 { color: #ff4500; text-shadow: 0 0 20px #ff4500, 0 0 40px #ff4500; animation: fire-flicker 0.6s infinite; }
-        .logo.m12 { color: #ffd700; text-shadow: 0 0 30px #ffd700, 0 0 60px #ffd700; animation: gold-shine 3s infinite; }
-        .logo.m13 { color: #ff1493; text-shadow: 0 0 20px #ff1493, 0 0 40px #ff1493; animation: heartbeat 1.2s infinite; }
-        .logo.m14 { color: #00bfff; text-shadow: 0 0 20px #00bfff, 0 0 40px #00bfff; animation: wave 2s infinite; }
-        .logo.m15 { background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff); -webkit-background-clip: text; background-clip: text; color: transparent; animation: rainbow-shift 3s linear infinite; }
-        
-        @keyframes pulse-glow { 0%,100% { opacity: 1; } 50% { opacity: 0.85; filter: brightness(1.3); } }
-        @keyframes logo-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-        @keyframes shimmer { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
-        @keyframes electric-surge { 0%,100% { text-shadow: 0 0 20px currentColor; } 50% { text-shadow: 0 0 40px currentColor, 0 0 80px currentColor; } }
-        @keyframes fire-flicker { 0%,100% { opacity: 1; } 50% { opacity: 0.9; transform: scale(1.01); } }
-        @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-        @keyframes gold-shine { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
-        @keyframes holy-glow { 0%,100% { text-shadow: 0 0 25px #fff; } 50% { text-shadow: 0 0 50px #fff, 0 0 100px #fff; } }
-        @keyframes heartbeat { 0%,100% { transform: scale(1); } 14%,42% { transform: scale(1.05); } }
-        @keyframes wave { 0%,100% { transform: translateY(0); } 25% { transform: translateY(-2px) rotate(1deg); } 75% { transform: translateY(2px) rotate(-1deg); } }
-        @keyframes rainbow-shift { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
-
-        .sub-tag { 
-            font-size: 11px; letter-spacing: 3px; color: var(--accent); margin-left: 10px; 
-            opacity: 0.7;
-            position: relative;
-            display: inline-block;
-            overflow: hidden;
-        }
-        
-        .sub-tag::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: vngrd-shine 8s ease-in-out infinite;
-        }
-        
-        @keyframes vngrd-shine {
-            0%, 85%, 100% { left: -100%; opacity: 0; }
-            90%, 95% { opacity: 1; }
-            92% { left: 150%; }
-        }
-        .version { font-size: 10px; color: var(--accent); padding: 3px 8px; background: var(--accent-dim); border: 1px solid var(--accent); margin-left: 10px; }
-
-        /* ═══════════════════════════════════════════════════════════════
-           STAGE - LAYERED ARCHITECTURE
-           Z-INDEX: Canvas(1000) < Overlays(2000) < UI(5000)
-           ═══════════════════════════════════════════════════════════════ */
-        #stage { 
-            position: fixed; top: 45px; left: 200px; right: 200px; bottom: 55px;
-            background: #000; border: 1px solid var(--border);
-            overflow: hidden;
-        }
-        
-        /* CANVAS LAYER - Z:1000 */
-        #vj-canvas {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1000;
-        }
-        
-        /* OVERLAY LAYER - Z:2000 (Sharp HTML) */
-        #overlay-layer {
-            position: absolute; inset: 0;
-            z-index: 2000; pointer-events: none;
-        }
-        
-        /* Scanlines */
-        #stage::before {
-            content: ""; position: absolute; inset: 0; z-index: 3000; pointer-events: none;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-            opacity: 0.3;
-        }
-        
-        /* Vignette */
-        #stage::after {
-            content: ""; position: absolute; inset: 0; z-index: 3001; pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
+            --accent: #00f3ff; --accent-dim: rgba(0, 243, 255, 0.2);
+            --bg: #050508; --panel: #08080c; --border: #151520;
+            --text: #a0a0a8; --g: #00ff88; --r: #ff3333; --y: #ffcc00;
         }
 
-        /* Fullscreen */
-        body.fullscreen #stage { position: fixed; inset: 0; z-index: 9999; border: none; }
-        body.fullscreen .sidebar, body.fullscreen #top-bar, body.fullscreen #bottom-bar { opacity: 0; pointer-events: none; }
-        body.fullscreen #overlay-layer { z-index: 10000; }
-
-        /* ═══════════════════════════════════════════════════════════════
-           LOWER THIRDS - PREMIUM HTML OVERLAY
-           ═══════════════════════════════════════════════════════════════ */
-        #lower-third {
-            position: absolute;
-            bottom: 80px; left: 40px;
-            z-index: 2500;
-            pointer-events: none;
-        }
-        
-        /* Stage 1: Accent Line Wipe */
-        #lower-third::before {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0;
-            width: 100%; height: 3px;
-            background: var(--accent);
-            box-shadow: 0 0 20px var(--accent);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        #lower-third.visible::before {
-            transform: scaleX(1);
-        }
-        
-        /* Stage 2: Container Unfold */
-        .lt-container {
-            display: flex; flex-direction: column;
-            backdrop-filter: blur(20px);
-            background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(20,20,30,0.9) 100%);
-            border: 1px solid var(--accent);
-            border-left: 4px solid var(--accent);
-            box-shadow: 0 0 40px var(--accent-dim), 0 10px 40px rgba(0,0,0,0.5);
-            padding: 15px 30px 15px 20px;
-            min-width: 350px;
-            max-width: 550px;
-            clip-path: inset(100% 0 0 0);
-            opacity: 0;
-            transition: clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s, opacity 0.3s ease 0.2s;
-        }
-        
-        #lower-third.visible .lt-container {
-            clip-path: inset(0 0 0 0);
-            opacity: 1;
-        }
-        
-        /* Stage 3: Typography Animation */
-        .lt-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px; font-weight: 800;
-            color: #fff;
-            text-shadow: 0 0 20px var(--accent), 2px 2px 4px rgba(0,0,0,0.8);
-            letter-spacing: -2px;
-            line-height: 1.1;
-            margin-bottom: 4px;
-            opacity: 0;
-            transition: letter-spacing 0.5s ease 0.5s, opacity 0.4s ease 0.45s;
-        }
-        
-        #lower-third.visible .lt-title {
-            letter-spacing: 1px;
-            opacity: 1;
-        }
-        
-        .lt-subtitle {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            color: var(--accent);
-            text-shadow: 0 0 10px var(--accent-glow);
-            letter-spacing: -1px;
-            text-transform: uppercase;
-            opacity: 0;
-            transition: letter-spacing 0.4s ease 0.6s, opacity 0.3s ease 0.55s;
-        }
-        
-        #lower-third.visible .lt-subtitle {
-            letter-spacing: 2px;
-            opacity: 1;
-        }
-        
-        .lt-accent {
-            position: absolute;
-            top: 0; left: 0; bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, var(--accent) 0%, var(--p) 50%, var(--g) 100%);
-            animation: lt-accent-pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes lt-accent-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
-        /* Lower Third Presets */
-        .lt-container.lt-guest { border-color: var(--c); }
-        .lt-container.lt-guest .lt-subtitle { color: var(--c); }
-        
-        .lt-container.lt-track { border-color: var(--g); background: linear-gradient(135deg, rgba(0,20,10,0.9) 0%, rgba(0,40,20,0.85) 100%); }
-        .lt-container.lt-track .lt-title { font-size: 22px; }
-        .lt-container.lt-track .lt-subtitle { color: var(--g); font-size: 12px; }
-        
-        .lt-container.lt-breaking { 
-            border-color: var(--r); 
-            background: linear-gradient(135deg, rgba(40,0,0,0.95) 0%, rgba(60,10,10,0.9) 100%);
-            animation: breaking-pulse 0.5s ease-in-out infinite;
-        }
-        .lt-container.lt-breaking .lt-title { color: #fff; }
-        .lt-container.lt-breaking .lt-subtitle { color: var(--r); }
-        
-        @keyframes breaking-pulse {
-            0%, 100% { box-shadow: 0 0 40px rgba(255,50,50,0.3); border-color: var(--r); }
-            50% { box-shadow: 0 0 100px rgba(255,255,255,0.8); border-color: #fff; }
+        body { 
+            background: var(--bg); color: var(--text); margin: 0; overflow: hidden; 
+            font-family: 'JetBrains Mono', monospace; height: 100vh; width: 100vw;
+            user-select: none; -webkit-user-drag: none;
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-           STATION BUG - HTML OVERLAY (Sharp)
-           ═══════════════════════════════════════════════════════════════ */
-        #station-bug {
-            position: absolute;
-            top: 30px; left: 30px;
-            z-index: 2600;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px; font-weight: 800;
-            color: rgba(255,255,255,0.7);
-            text-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent-dim);
-            backdrop-filter: blur(5px);
-            padding: 5px 10px;
-            cursor: move;
-            user-select: none;
-            transition: opacity 0.3s;
-            pointer-events: auto;
-        }
+        /* --- STAGE LAYOUT --- */
+        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 45px; background: #0c0c12; border-bottom: 1px solid var(--border); z-index: 5000; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
+        #bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 55px; background: #0c0c12; border-top: 1px solid var(--border); z-index: 5000; }
         
-        #station-bug.hidden { opacity: 0; pointer-events: none; }
-        
-        #station-bug img {
-            max-height: 60px;
-            filter: drop-shadow(0 0 10px var(--accent));
-        }
+        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); z-index: 4000; overflow-y: auto; }
+        #left-panel { left: 0; border-right: 1px solid rgba(0,243,255,0.1); }
+        #right-panel { right: 0; border-left: 1px solid rgba(0,243,255,0.1); }
 
-        /* ═══════════════════════════════════════════════════════════════
-           TOP BAR
-           ═══════════════════════════════════════════════════════════════ */
-        #top-bar {
-            position: fixed; top: 0; left: 0; right: 0; height: 45px;
-            background: linear-gradient(180deg, var(--panel-light) 0%, var(--panel) 100%);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 15px; z-index: 5000;
-        }
+        #stage { position: fixed; top: 45px; left: 200px; right: 200px; bottom: 55px; background: #000; overflow: hidden; }
+        #vj-canvas { width: 100%; height: 100%; display: block; }
         
-        #brand { display: flex; align-items: center; }
-        #status-bar { display: flex; align-items: center; gap: 15px; }
+        /* --- UI ELEMENTS --- */
+        .logo { font-family: 'Orbitron'; font-weight: 900; font-size: 24px; color: #fff; letter-spacing: -1px; }
+        .m1 { text-shadow: 0 0 15px var(--accent); }
         
-        .stat { display: flex; align-items: center; gap: 5px; font-size: 10px; }
-        .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--g); box-shadow: 0 0 6px var(--g); }
-        .dot.live { background: var(--r); box-shadow: 0 0 8px var(--r); animation: dot-pulse 0.5s infinite; }
-        @keyframes dot-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-        
-        #clock { font-family: 'Orbitron', sans-serif; font-size: 16px; color: var(--accent); letter-spacing: 2px; }
-        
-        #tally { display: none; padding: 4px 12px; background: var(--r); color: #fff; font-size: 10px; font-weight: bold; letter-spacing: 2px; animation: tally-blink 1s infinite; }
-        @keyframes tally-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-        
-        .badge {
-            display: flex; align-items: center; gap: 5px;
-            padding: 3px 8px; border: 1px solid; font-size: 9px;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .badge:hover { box-shadow: 0 0 10px currentColor; }
-        #fps-badge { border-color: var(--g); color: var(--g); background: rgba(0,255,136,0.05); }
-        #cycle-badge { border-color: var(--y); color: var(--y); background: rgba(255,204,0,0.05); display: none; }
-        #cycle-badge.on { display: flex; }
+        .btn { width: 100%; padding: 8px; background: #111; border: 1px solid var(--border); color: #888; margin-bottom: 5px; cursor: pointer; text-align: left; font-family: inherit; font-size: 10px; }
+        .btn:hover { background: #1a1a1a; color: #fff; border-color: #333; }
+        .btn.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 8px var(--accent-dim); }
+        .btn.rec { border-color: rgba(255,0,0,0.3); color: var(--r); }
 
-        /* ═══════════════════════════════════════════════════════════════
-           SIDEBARS
-           ═══════════════════════════════════════════════════════════════ */
-        .sidebar {
-            position: fixed; top: 45px; bottom: 55px; width: 200px;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            overflow-y: auto; z-index: 4000;
-            scrollbar-width: none; /* Hide Firefox scrollbar */
-            transition: border-color 0.4s ease, box-shadow 0.4s ease;
-        }
-        
-        .sidebar::-webkit-scrollbar { display: none; } /* Hide Chrome scrollbar */
-        
-        /* NEON TRACE: Right panel gets left edge, Left panel gets right edge */
-        #left-panel { 
-            left: 0; border-left: none; 
-            border-right: 1px solid rgba(0, 243, 255, 0.1);
-        }
-        #left-panel:hover {
-            border-right: 1px solid var(--accent);
-            box-shadow: inset -5px 0 15px var(--accent-dim);
-        }
-        
-        #right-panel { 
-            right: 0; border-right: none; 
-            border-left: 1px solid rgba(0, 243, 255, 0.1);
-        }
-        #right-panel:hover {
-            border-left: 1px solid var(--accent);
-            box-shadow: inset 5px 0 15px var(--accent-dim);
-        }
-        
-        .section { border-bottom: 1px solid var(--border); }
-        
-        .sec-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .sec-title { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 2px; color: var(--accent); }
-        .sec-dot { width: 5px; height: 5px; background: var(--g); border-radius: 50%; box-shadow: 0 0 4px var(--g); }
-        .sec-dot.off { background: var(--text-dim); box-shadow: none; }
-        
-        .sec-body { padding: 10px 12px; }
-        
-        /* Buttons */
-        .btn {
-            display: block; width: 100%;
-            padding: 8px 10px; margin-bottom: 6px;
-            background: linear-gradient(180deg, #0f0f14 0%, #0a0a0e 100%);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        
-        .btn:hover { background: linear-gradient(180deg, #151520 0%, #0f0f14 100%); color: var(--text-bright); border-color: var(--border-light); }
-        .btn:active { box-shadow: inset 0 2px 10px rgba(0,0,0,0.8); transform: translateY(2px); }
-        .btn.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
-        
-        /* PARTY MODE Button - Magenta Breathing */
-        #btn-ui-react {
-            animation: party-breathe 3s ease-in-out infinite;
-        }
-        #btn-ui-react.on {
-            animation: none;
-            color: #ff00ff;
-            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
-            border-color: #ff00ff;
-            background: rgba(255,0,255,0.1);
-        }
-        @keyframes party-breathe {
-            0%, 100% { color: var(--text); text-shadow: none; }
-            50% { color: #ff00ff; text-shadow: 0 0 8px #ff00ff; }
-        }
-        
-        /* SEISMIC ENGINE Button - Orange/Fire */
-        #btn-rumble {
-            animation: seismic-breathe 2.5s ease-in-out infinite;
-        }
-        #btn-rumble.on {
-            animation: none;
-            color: #ff6600;
-            text-shadow: 0 0 10px #ff6600, 0 0 20px #ff3300;
-            border-color: #ff6600;
-            background: rgba(255,102,0,0.1);
-        }
-        @keyframes seismic-breathe {
-            0%, 100% { color: var(--text); text-shadow: none; }
-            50% { color: #ff6600; text-shadow: 0 0 6px #ff6600; }
-        }
-        
-        .btn.rec { background: linear-gradient(180deg, #1a0808 0%, #0f0505 100%); border-color: rgba(255,51,51,0.4); color: var(--r); }
-        .btn.danger { border-color: var(--r); color: var(--r); }
-        .btn.danger:hover { background: var(--r); color: #000; box-shadow: 0 0 20px var(--r); }
-        
-        /* Command Center - Glowing Action Buttons */
-        #btn-master-reset {
-            border-color: var(--y);
-            color: var(--y);
-            text-shadow: 0 0 6px rgba(255,204,0,0.5);
-        }
-        #btn-master-reset:hover {
-            background: var(--y);
-            color: #000;
-            text-shadow: none;
-            box-shadow: 0 0 20px var(--y);
-        }
-        #btn-purge {
-            text-shadow: 0 0 6px rgba(255,50,50,0.5);
-        }
-        .btn.impact { background: linear-gradient(180deg, #1a1000 0%, #0f0800 100%); border-color: var(--o); color: var(--o); }
-        
-        .btn-row { display: flex; gap: 6px; }
-        .btn-row .btn { flex: 1; text-align: center; }
-        
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .btn-grid .btn { text-align: center; }
-        
-        .btn-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        .btn-grid-3 .btn { text-align: center; font-size: 9px; padding: 6px 4px; }
-        
-        /* Inputs */
-        .inp {
-            width: 100%; padding: 7px 10px; margin-bottom: 6px;
-            background: #040406;
-            border: 1px solid var(--border);
-            color: var(--text-bright);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-        }
-        
-        .inp:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 8px var(--accent-dim); }
-        
-        .lbl { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+        .slider-wrap { margin-bottom: 8px; padding: 0 5px; }
+        input[type=range] { width: 100%; height: 3px; background: #333; -webkit-appearance: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--accent); cursor: pointer; }
 
-        /* Sliders */
-        .slider-wrap { margin-bottom: 10px; }
-        .slider-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .slider-lbl { font-size: 9px; color: var(--text-dim); }
-        .slider-val { font-size: 10px; color: var(--accent); font-family: 'Orbitron', sans-serif; }
+        /* --- PREVIEW & LOGS --- */
+        #cam-preview { height: 100px; background: #000; border: 1px solid #333; margin: 10px 5px; position: relative; }
+        video { width: 100%; height: 100%; object-fit: cover; }
         
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%; height: 4px;
-            background: var(--border);
-            border-radius: 2px;
+        #sys-log { position: fixed; bottom: 55px; right: 200px; width: 250px; height: 100px; pointer-events: none; overflow: hidden; font-size: 9px; padding: 5px; display: flex; flex-direction: column-reverse; z-index: 6000; text-shadow: 1px 1px 0 #000; }
+        .log-line { color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+        
+        .blur-reveal { position: fixed; inset: 0; backdrop-filter: blur(20px); z-index: 9999; transition: opacity 1s; pointer-events: none; background: rgba(0,0,0,0.2); }
+        
+        /* RESPONSIVE */
+        @media(max-width: 900px) {
+            .sidebar { display: none; } /* Mobile simplification */
+            #stage { left: 0; right: 0; }
         }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px; height: 14px;
-            background: var(--accent);
-            border-radius: 2px;
-            box-shadow: 0 0 8px var(--accent-dim);
-            cursor: pointer;
-        }
-
-        /* Camera Preview */
-        #cam-preview {
-            background: linear-gradient(135deg, #0a0a12 0%, #050510 100%);
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            width: calc(100% - 8px); height: 100px;
-            margin: 4px auto 12px auto;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        #cam-preview::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border: 2px solid transparent;
-            border-image: linear-gradient(135deg, var(--c), var(--p), var(--g)) 1;
-            border-radius: 4px;
-            pointer-events: none;
-            opacity: 0.6;
-        }
-        
-        #cam-preview video { width: 100%; height: 100%; object-fit: cover; }
-        
-        .preview-label {
-            position: absolute;
-            bottom: 4px; left: 4px;
-            font-size: 8px; color: var(--accent);
-            background: rgba(0,0,0,0.8);
-            padding: 2px 6px;
-            border-left: 2px solid var(--accent);
-            letter-spacing: 1px;
-        }
-        
-        .rec-indicator { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--r); border-radius: 50%; display: none; animation: rec-blink 1s infinite; }
-        .rec-indicator.on { display: block; }
-        @keyframes rec-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* Audio VU */
-        #audio-box {
-            background: #000;
-            border: 1px solid var(--border);
-            padding: 8px; margin-bottom: 8px;
-            border-radius: 3px;
-        }
-        
-        #vu { display: flex; gap: 2px; height: 30px; align-items: flex-end; }
-        .vu-bar { flex: 1; background: linear-gradient(to top, var(--g) 0%, var(--y) 60%, var(--r) 90%); min-height: 2px; border-radius: 1px; transition: height 0.05s; }
-        
-        #track-info { font-family: 'Orbitron', sans-serif; font-size: 9px; color: var(--y); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* Palette */
-        .palette-grid { display: flex; gap: 6px; flex-wrap: wrap; }
-        .pal {
-            width: 26px; height: 26px;
-            border: 2px solid var(--border);
-            cursor: pointer; border-radius: 4px;
-            transition: all 0.2s;
-        }
-        .pal:hover { transform: scale(1.15); }
-        .pal.on { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
-        
-        .pal[data-t="cyan"] { background: #00f3ff; }
-        .pal[data-t="magenta"] { background: #ff0055; }
-        .pal[data-t="green"] { background: #00ff88; }
-        .pal[data-t="purple"] { background: #b000ff; }
-        .pal[data-t="gold"] { background: #ffd700; }
-        .pal[data-t="night"] { background: linear-gradient(135deg, #0a0a15, #1a1a2a); border-color: #334455; }
-
-        /* ═══════════════════════════════════════════════════════════════
-           BOTTOM BAR
-           ═══════════════════════════════════════════════════════════════ */
-        #bottom-bar {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 55px;
-            background: linear-gradient(0deg, var(--panel-light) 0%, var(--panel) 100%);
-            border-top: 1px solid var(--border);
-            z-index: 5000;
-            display: flex; flex-direction: column;
-        }
-        
-        #ticker-wrap {
-            flex: 1;
-            display: flex; align-items: center;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid var(--border);
-            overflow: hidden;
-        }
-        
-        #ticker-label { padding: 0 12px; font-size: 8px; letter-spacing: 2px; color: var(--accent); background: var(--accent-dim); height: 100%; display: flex; align-items: center; border-right: 1px solid var(--border); }
-        #ticker-scroll { flex: 1; overflow: hidden; white-space: nowrap; }
-        #ticker-text { display: inline-block; padding-left: 100%; animation: scroll-ticker 60s linear infinite; font-size: 10px; }
-        @keyframes scroll-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        
-        #info-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 6px 15px; font-size: 9px;
-        }
-        
-        .info-group { display: flex; gap: 20px; }
-        .info-item { color: var(--text-dim); }
-        .info-item span { color: var(--text); }
-        .info-item .hl { color: var(--accent); }
-
-        /* Sys Log */
-        #sys-log {
-            position: fixed; bottom: 55px; right: 200px;
-            width: 220px; height: 45px;
-            background: rgba(0,0,0,0.95);
-            border: 1px solid var(--border); border-bottom: none;
-            font-size: 8px; color: var(--text-dim);
-            overflow-y: auto; padding: 5px; z-index: 4400;
-        }
-        
-        .log-line { margin-bottom: 2px; }
-        .log-line .ts { color: var(--accent); margin-right: 5px; }
-
-        /* Countdown */
-        #countdown {
-            position: absolute; inset: 0;
-            background: rgba(0,0,0,0.95);
-            display: none; align-items: center; justify-content: center;
-            z-index: 5000;
-        }
-        
-        #countdown-num {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 140px; font-weight: 900;
-            color: var(--accent);
-            text-shadow: 0 0 60px var(--accent);
-        }
-
-        /* Hidden inputs */
-        /* Boot Screen - BIOS Terminal */
-        /* MATERIAL BLUR REVEAL */
-        .blur-reveal {
-            position: fixed; inset: 0;
-            backdrop-filter: blur(50px);
-            -webkit-backdrop-filter: blur(50px);
-            z-index: 99999;
-            pointer-events: none;
-            animation: material-reveal 0.5s ease forwards;
-        }
-        
-        @keyframes material-reveal {
-            0% { backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); opacity: 1; }
-            100% { backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); opacity: 0; }
-        }
-
-        input[type="file"] { display: none; }
-        
-        /* Progress bar */
-        .prog { width: 100%; height: 3px; background: var(--border); margin-top: 5px; display: none; border-radius: 2px; }
-        .prog-fill { height: 100%; width: 0%; background: var(--g); border-radius: 2px; transition: width 0.1s; }
-
-        /* VHS/CRT */
-        body.vhs #stage::before { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px); animation: vhs-track 0.1s steps(3) infinite; opacity: 0.6; }
-        @keyframes vhs-track { 0% { background-position: 0 0; } 100% { background-position: 0 4px; } }
-        body.crt #stage::after { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%); }
-    /* --- SOVEREIGN MOBILE ADAPTATION --- */
-@media screen and (max-width: 950px) {
-    /* Stack UI vertically on mobile */
-    #main-container {
-        flex-direction: column !important;
-        height: 100vh;
-    }
-
-    /* Step 1: Center the Stage */
-    #stage {
-        order: 2; /* Moves screen to middle position */
-        flex: 1;  /* Makes it fill all available center space */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000;
-        min-height: 50vh; 
-    }
-
-    /* Ensure canvas fits to screen [Saved Info] */
-    #vj-canvas {
-        max-width: 100% !important;
-        max-height: 100% !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: contain;
-    }
-}
-
-/* Step 2: Landscape Rotation Prompt */
-@media screen and (max-width: 900px) and (orientation: portrait) {
-    body::after {
-        content: "DRIS//core: ROTATE DEVICE FOR FULL BROADCAST MODE";
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background: #050505;
-        color: #00f3ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        font-family: monospace;
-        z-index: 9999;
-        padding: 40px;
-        box-sizing: border-box;
-    }
-}
-/* ═══════════════════════════════════════════════════════════════
-   CRITICAL SYSTEM OVERRIDES (Theme-Independent)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* MASTER EJECT - Emergency Orange */
-#btn-eject {
-    border-color: #ff9d00 !important;
-    color: #ff9d00 !important;
-}
-#btn-eject:hover {
-    background: #ff9d00 !important;
-    color: #000 !important;
-    box-shadow: 0 0 25px rgba(255, 157, 0, 0.6) !important;
-}
-
-/* MASTER RESET - Caution Gold */
-#btn-master-reset {
-    border-color: #ffcc00 !important;
-    color: #ffcc00 !important;
-}
-#btn-master-reset:hover {
-    background: #ffcc00 !important;
-    color: #000 !important;
-    box-shadow: 0 0 25px rgba(255, 204, 0, 0.6) !important;
-}
-
-/* PURGE ALL - Nuclear Red */
-#btn-purge {
-    border-color: #ff3333 !important;
-    color: #ff3333 !important;
-    font-weight: 800 !important;
-}
-#btn-purge:hover {
-    background: #ff3333 !important;
-    color: #fff !important;
-    box-shadow: 0 0 40px rgba(255, 51, 51, 0.8) !important;
-}/* SURGICAL FIX: Unified Sidebar Modules */
-.camera-box .sec-body, .media-box .sec-body {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-/* Force standard height and font for all module buttons */
-.camera-box .btn, .media-box .btn {
-    font-family: 'JetBrains Mono', monospace !important; 
-    height: 42px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 10px;
-    margin-bottom: 0 !important;
-}
-
-/* 1-2-1 Grid for Camera */
-.camera-box .btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-/* Professional 4-Column Grid for Media Deck (Arrow-Cycle-Input-Arrow) */
-.media-row-complex {
-    display: grid;
-    grid-template-columns: 35px 1fr 45px 35px; 
-    gap: 4px;
-    align-items: center;
-}
-
-/* Align the number input with the buttons exactly */
-.media-row-complex input {
-    height: 42px; /* Matches button height */
-    background: #000;
-    border: 1px solid var(--border);
-    color: var(--accent);
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    width: 100%;
-    margin-bottom: 0 !important;
-}#btn-media {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.q-label {
-    opacity: 0.5;
-    font-size: 9px;
-}/* ════════════════════════════════════════════════════════════════ */
-/* DRIS//core SIGNATURE BRANDING DNA */
-/* ════════════════════════════════════════════════════════════════ */
-
-.station-bug.cyan { 
-    color: var(--c); 
-    text-shadow: 0 0 10px var(--c); 
-}
-
-.station-bug.magenta { 
-    color: var(--m); 
-    text-shadow: 0 0 10px var(--m); 
-    font-style: italic; 
-}
-
-.station-bug.gold { 
-    color: var(--y); 
-    text-shadow: 0 0 15px rgba(255,215,0,0.5); 
-    font-weight: 900; 
-}
-
-.station-bug.vanguard { 
-    color: #fff; 
-    text-shadow: 2px 0 #ff0055, -2px 0 #00ffcc; 
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-/* Tactical Scale Support */
-#station-bug {
-    transition: transform 0.1s ease-out; /* Makes resizing feel smooth, not jerky */
-    transform-origin: center center;
-    cursor: move;
-}
-
-#station-bug img {
-    max-height: 100%;
-    width: auto;
-    display: block;
-    pointer-events: none;
-}</style>
-    <meta name="theme-color" content="#00f3ff">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    </style>
 </head>
 <body>
-    <!-- SVG Filter: Chromatic Ghost (GPU-accelerated RGB split) -->
-    <svg style="position:absolute;width:0;height:0;">
-        <defs>
-            <filter id="chromatic-ghost" x="-20%" y="-20%" width="140%" height="140%">
-                <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
-                <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
-                <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
-                <feOffset in="red" dx="-15" dy="0" result="red-shift"/>
-                <feOffset in="blue" dx="15" dy="0" result="blue-shift"/>
-                <feBlend in="red-shift" in2="green" mode="screen" result="rg"/>
-                <feBlend in="rg" in2="blue-shift" mode="screen"/>
-            </filter>
-        </defs>
-    </svg>
-    
-    <!-- MATERIAL BLUR REVEAL -->
+
     <div class="blur-reveal" id="blur-reveal"></div>
     
-    <!-- TOP BAR -->
-    <header id="top-bar">
-        <div id="brand">
-            <span class="logo m1" id="main-logo">DRIS<span style="font-size:14px;font-weight:400;color:var(--accent);opacity:0.6;margin-left:2px;letter-spacing:1px">//&nbsp;core</span></span>
-            <span class="sub-tag">VNGRD</span>
-            <span class="version">v22.1</span>
+    <div id="top-bar">
+        <div class="logo m1" id="main-logo">DRIS//core</div>
+        <div style="display:flex; gap:15px; font-size:10px;">
+            <span id="fps-val" style="color:var(--g)">60 FPS</span>
+            <span id="clock" style="color:var(--accent)">00:00:00</span>
         </div>
-        
-        <div id="status-bar">
-            <div class="badge" id="fps-badge">FPS: <span id="fps-val">60</span></div>
-            <div class="badge" id="cycle-badge">CYCLE</div>
-            <div class="stat"><div class="dot" id="main-dot"></div><span id="status-text">STANDBY</span></div>
-            <div id="tally">ON AIR</div>
-            <div id="clock">00:00:00</div>
-        </div>
-    </header>
+    </div>
 
-    <!-- STAGE -->
     <main id="stage">
         <canvas id="vj-canvas"></canvas>
-        
-        <!-- HTML OVERLAY LAYER (Sharp Typography) -->
-        <div id="overlay-layer">
-            <!-- Station Bug -->
-            <div id="station-bug">DRIS//core</div>
-            
-            <!-- Lower Third -->
-            <div id="lower-third">
-                <div class="lt-container lt-guest">
-                    <div class="lt-title" id="lt-title-text">GUEST NAME</div>
-                    <div class="lt-subtitle" id="lt-subtitle-text">TITLE / ROLE</div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="countdown"><div id="countdown-num">3</div></div>
+        <div id="sys-log"></div>
     </main>
 
-    <!-- LEFT PANEL -->
     <aside class="sidebar" id="left-panel">
-        <div class="section camera-box">
-            <div class="sec-head">
-                <span class="sec-title">CAMERA</span>
-                <div class="sec-dot off" id="cam-dot"></div>
+        <div style="padding:10px;">
+            <div style="font-size:10px; color:var(--accent); margin-bottom:5px;">CAMERA OPS</div>
+            <div id="cam-preview"><video id="preview-vid" autoplay muted playsinline></video></div>
+            
+            <button class="btn" id="btn-init-cam">INITIALIZE SENSORS</button>
+            <div id="cam-ctrls" style="display:none">
+                <button class="btn" id="btn-go-live" style="color:var(--y)">GO LIVE</button>
             </div>
-            <div class="sec-body">
-                <div id="cam-preview" style="display:none;">
-                    <video id="preview-vid" autoplay muted playsinline></video>
-                    <div class="preview-label">PREVIEW</div>
-                    <div class="rec-indicator" id="rec-dot"></div>
-                </div>
-                <button class="btn" id="btn-init-cam">SENSORS ONLINE</button>
-                <div id="cam-ctrls" style="display:none">
-    <button class="btn" id="btn-go-live" style="color:var(--y)">GO LIVE [3-2-1]</button>
-</div> <div id="live-ctrls" style="display:none">
-                    <button class="btn rec" id="btn-rec">● REC</button>
-                    <button class="btn" id="btn-end">END LIVE</button>
-                </div>
-                <button class="btn" id="btn-kill" style="display:none;color:var(--r)">SHUTDOWN CAM</button>
+            <div id="live-ctrls" style="display:none">
+                <button class="btn rec" id="btn-end">END BROADCAST</button>
             </div>
-        </div>
-        
-        <div class="section media-box">
-            <div class="sec-head">
-                <span class="sec-title">MEDIA DECK</span>
-                <div class="sec-dot off" id="media-dot"></div>
-            </div>
-            <div class="sec-body">
-                <button class="btn" id="btn-media">
-    <span>IMPORT MEDIA</span>
-    <span class="q-label">Q: <span id="q-count">0</span></span>
-</button>
-                <div class="media-row-complex">
-                    <button class="btn" id="btn-prev">&lt;</button>
-                    <button class="btn" id="btn-cycle" style="color:var(--y);">CYCLE: OFF</button>
-                    <input type="number" id="cycle-time" value="8" min="1" max="60" title="Image Secs">
-                    <button class="btn" id="btn-rotate">&gt;</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">COMMAND</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body" style="padding-top:12px;">
-                <div class="btn-row" style="margin-bottom:8px;">
-                    <button class="btn" id="btn-ui-react">PARTY MODE</button>
-                    <button class="btn" id="btn-rumble">SEISMIC</button>
-                </div>
-                <button class="btn" id="btn-eject">EJECT CURRENT</button>
-                <button class="btn" id="btn-master-reset">[ESC] MASTER RESET</button>
-                <button class="btn danger" id="btn-purge">PURGE ALL</button>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">LOWER THIRD</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <input type="text" class="inp" id="lt-title" placeholder="Title..." value="GUEST NAME">
-                <input type="text" class="inp" id="lt-sub" placeholder="Subtitle..." value="TITLE / ROLE">
-                <div class="btn-grid">
-                    <button class="btn" id="btn-lt-guest">GUEST</button>
-                    <button class="btn" id="btn-lt-track">TRACK</button>
-                    <button class="btn" id="btn-lt-breaking">BREAKING</button>
-                    <button class="btn" id="btn-lt-off">OFF</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">STATION BUG</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="btn-row">
-                    <button class="btn" id="btn-upload-logo">UPLOAD LOGO</button>
-                    <button class="btn" id="btn-clear-logo">CLEAR</button>
-                </div>
-                
-                <select class="inp" id="bug-style-select" style="cursor:pointer; color:var(--accent);">
-                    <option value="cyan">STYLE: CYAN CORE</option>
-                    <option value="magenta">STYLE: MAGENTA VIBE</option>
-                    <option value="gold">STYLE: GOLD STATUS</option>
-                    <option value="vanguard">STYLE: VANGUARD GLITCH</option>
-                </select>
 
-                <input type="text" class="inp" id="bug-text" placeholder="Station name..." value="DRIS//core">
-                <button class="btn" id="btn-bug-toggle">[B] SHOW/HIDE</button>
-            </div>
-        </div>
-    </aside> <aside class="sidebar" id="right-panel">
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">AUDIO</span>
-                <div class="sec-dot off" id="audio-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div id="audio-box">
-                    <div id="vu"></div>
-                    <div id="track-info">NO TRACK</div>
-                </div>
-                <button class="btn" id="btn-audio">LOAD AUDIO</button>
-                <div class="btn-row">
-                    <button class="btn" id="btn-next-track">NEXT</button>
-                    <button class="btn" id="btn-stop">STOP</button>
-                </div>
-                <div class="lbl" style="margin-top:8px;">SPATIAL MODE</div>
-                <div class="btn-grid-3 camera-box"> 
-                    <button class="btn on" id="btn-stereo">STEREO</button>
-                    <button class="btn" id="btn-spatial">3D</button>
-                    <button class="btn" id="btn-dolby">DOLBY</button>
-                </div>
-                <div class="lbl" style="margin-top:8px;">OUTPUT DEVICE</div>
-                <select class="inp" id="audio-output" style="cursor:pointer;">
-                    <option value="">Default</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">IMPACT FX</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="btn-grid-3">
-                    <button class="btn impact" id="btn-stutter">STUTTER</button>
-                    <button class="btn impact" id="btn-invert">INVERT</button>
-                    <button class="btn impact" id="btn-crush">CRUSH</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">VJ ENGINE</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="slider-wrap">
-                    <div class="slider-top"><span class="slider-lbl">BRIGHTNESS</span><span class="slider-val" id="val-b">100%</span></div>
-                    <input type="range" min="30" max="170" value="100" id="sl-b">
-                </div>
-                <div class="slider-wrap">
-                    <div class="slider-top"><span class="slider-lbl">CONTRAST</span><span class="slider-val" id="val-c">100%</span></div>
-                    <input type="range" min="30" max="170" value="100" id="sl-c">
-                </div>
-                <div class="slider-wrap">
-                    <div class="slider-top"><span class="slider-lbl">SATURATION</span><span class="slider-val" id="val-s">100%</span></div>
-                    <input type="range" min="0" max="200" value="100" id="sl-s">
-                </div>
-                <div class="slider-wrap">
-                    <div class="slider-top"><span class="slider-lbl">HUE</span><span class="slider-val" id="val-h">0°</span></div>
-                    <input type="range" min="0" max="360" value="0" id="sl-h">
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-    <div class="sec-head">
-        <span class="sec-title">CANVAS FX</span>
-        <div class="sec-dot"></div>
-    </div>
-    <div class="sec-body">
-        <div class="slider-wrap">
-            <div class="slider-top"><span class="slider-lbl">TRAIL α</span><span class="slider-val" id="val-trail">0.92</span></div>
-            <input type="range" min="50" max="98" value="92" id="sl-trail">
-        </div>
-        <div class="slider-wrap">
-            <div class="slider-top"><span class="slider-lbl">RGB SHIFT</span><span class="slider-val" id="val-rgb">0</span></div>
-            <input type="range" min="0" max="30" value="0" id="sl-rgb">
-        </div>
-        <div class="btn-row">
-            <button class="btn" id="btn-pixelate">PIXEL</button>
-            <button class="btn" id="btn-trails">TRAILS</button> 
-        </div>
-        <div class="btn-row">
-            <button class="btn" id="btn-rgb">RGB SHIFT</button>
-            <button class="btn" id="btn-bass-link">BASS→RGB</button>
-        </div>
-        <div class="slider-wrap">
-            <div class="slider-top"><span class="slider-lbl">PIXEL SIZE</span><span class="slider-val" id="val-pix">1</span></div>
-            <input type="range" min="1" max="32" value="1" id="sl-pix">
-        </div>
-    </div>
-</div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">OVERLAYS</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="btn-grid">
-                    <button class="btn" id="btn-vhs">VHS</button>
-                    <button class="btn" id="btn-crt">CRT</button>
-                    <button class="btn" id="btn-reset">RESET FX</button>
-                    <button class="btn" id="btn-fs">[H] FULL</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">THEME</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="palette-grid">
-                    <div class="pal on" data-t="cyan"></div>
-                    <div class="pal" data-t="magenta"></div>
-                    <div class="pal" data-t="green"></div>
-                    <div class="pal" data-t="purple"></div>
-                    <div class="pal" data-t="gold"></div>
-                    <div class="pal" data-t="night"></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">SESSION</span>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="sec-body">
-                <div class="btn-row">
-                    <button class="btn" id="btn-save">SAVE</button>
-                    <button class="btn" id="btn-load">LOAD</button>
-                </div>
-                <button class="btn" id="btn-export-dna">EXPORT .VGD</button>
-                <button class="btn" id="btn-projector">PROJECTOR (Clean Feed)</button>
-                <button class="btn" id="btn-capture30">CAPTURE 30s</button>
-                <button class="btn" id="btn-enter-vr">ENTER VR</button>
-            </div>
-        </div>
-        
-        <div class="section">
-            <div class="sec-head">
-                <span class="sec-title">P2P GUEST</span>
-                <div class="sec-dot" id="guest-dot"></div>
-            </div>
-            <div class="sec-body">
-                <input type="text" class="inp" id="peer-id-display" readonly placeholder="Your ID...">
-                <input type="text" class="inp" id="remote-peer-id" placeholder="Remote ID...">
-                <div class="btn-row">
-                    <button class="btn" id="btn-init-peer">INIT PEER</button>
-                    <button class="btn" id="btn-connect-guest">CONNECT</button>
-                </div>
-                <button class="btn" id="btn-disconnect-guest">DISCONNECT</button>
-            </div>
+            <div style="margin-top:20px; font-size:10px; color:var(--accent); margin-bottom:5px;">MEDIA DECK</div>
+            <button class="btn" id="btn-media">IMPORT FILES</button>
+            <button class="btn" id="btn-rotate">NEXT ASSET [SPACE]</button>
         </div>
     </aside>
 
-    <!-- BOTTOM BAR -->
-    <footer id="bottom-bar">
-        <div id="ticker-wrap">
-            <div id="ticker-label">SYS</div>
-            <div id="ticker-scroll">
-                <div id="ticker-text">DRIS//core VNGRD v22.1 // HYBRID BROADCAST // [H] FULLSCREEN [SPACE] NEXT [B] BUG [ESC] RESET // IMPACT FX: STUTTER • INVERT • CRUSH // <span id="ticker-crypto">BTC $--- | ETH $--- | SOL $---</span></div>
+    <aside class="sidebar" id="right-panel">
+        <div style="padding:10px;">
+            <div style="font-size:10px; color:var(--accent); margin-bottom:5px;">AUDIO ENGINE</div>
+            <div id="vu" style="height:20px; background:#111; margin-bottom:5px; display:flex; align-items:flex-end;">
+                </div>
+            <button class="btn" id="btn-audio">LOAD TRACK</button>
+            <div style="display:flex; gap:2px;">
+                <button class="btn" id="btn-stereo">STEREO</button>
+                <button class="btn" id="btn-spatial">3D</button>
+                <button class="btn" id="btn-dolby">DOLBY</button>
             </div>
+
+            <div style="margin-top:20px; font-size:10px; color:var(--accent); margin-bottom:5px;">VJ PROCESSOR</div>
+            <div class="slider-wrap"><input type="range" id="sl-b" min="0" max="200" value="100"></div>
+            <div class="slider-wrap"><input type="range" id="sl-c" min="0" max="200" value="100"></div>
+            <button class="btn" id="btn-trails">TRAILS FX</button>
         </div>
-        <div id="info-bar">
-            <div class="info-group">
-                <div class="info-item">UP: <span id="uptime" class="hl">00:00:00</span></div>
-                <div class="info-item">RES: <span id="res">1920x1080</span></div>
-                <div class="info-item">Q: <span id="q-info">0</span></div>
-            </div>
-            <div class="info-group">
-                <div class="info-item">MODE: <span id="render-mode" class="hl">HYBRID</span></div>
-            </div>
-        </div>
-    </footer>
+    </aside>
 
-    <!-- SYS LOG -->
-    <div id="sys-log"></div>
+    <div id="bottom-bar" style="display:flex; align-items:center; padding:0 20px; font-size:10px; color:#555;">
+        <span>SYSTEM ONLINE // UPTIME: <span id="uptime" style="color:#fff">00:00:00</span></span>
+        <span style="margin-left:auto;">RES: <span id="res">1920x1080</span></span>
+    </div>
 
-    <!-- HIDDEN -->
-    <input type="file" id="file-media" multiple accept="image/*,video/*">
-    <input type="file" id="file-audio" multiple accept="audio/*">
-    <input type="file" id="file-logo" accept="image/*">
-    <audio id="audio-el"></audio>
-    <div id="media-container" style="display:none;"></div>
+    <input type="file" id="file-media" multiple style="display:none">
+    <input type="file" id="file-audio" style="display:none">
+    <audio id="audio-el" style="display:none"></audio>
 
-    
     <script type="module" src="./src/app.js"></script>
+
 </body>
 </html>
