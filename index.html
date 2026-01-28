@@ -793,6 +793,14 @@
     font-size: 11px;
     width: 100%;
     margin-bottom: 0 !important;
+}#btn-media {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.q-label {
+    opacity: 0.5;
+    font-size: 9px;
 }</style>
     <meta name="theme-color" content="#00f3ff">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -889,10 +897,10 @@
                 <div class="sec-dot off" id="media-dot"></div>
             </div>
             <div class="sec-body">
-                <button class="btn" id="btn-media" style="display:flex; justify-content:space-between; margin-bottom:8px !important;">
-                    <span>+ IMPORT MEDIA</span>
-                    <span style="opacity:0.5; font-size:9px;">Q: <span id="q-count">0</span></span>
-                </button>
+                <button class="btn" id="btn-media">
+    <span>IMPORT MEDIA</span>
+    <span class="q-label">Q: <span id="q-count">0</span></span>
+</button>
                 <div class="media-row-complex">
                     <button class="btn" id="btn-prev">&lt;</button>
                     <button class="btn" id="btn-cycle" style="color:var(--y);">CYCLE: OFF</button>
