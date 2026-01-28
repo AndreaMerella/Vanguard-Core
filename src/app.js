@@ -464,42 +464,38 @@ function loadMediaFiles(input) {
 
 function rotateMedia() {
     if (APP.media.queue.length === 0) return;
-    
-    // INVERT SHIELD: Mask loading 'pop'
-    APP.vj.invert = true;
-    setTimeout(() => { APP.vj.invert = false; }, 50);
-    
-    // TRANSITION GLITCH: Chromatic aberration before swap
+
+    // 1. THE SIGNATURE SHIELD (Heavier than normal VJing)
+    // We force the RGB split to its maximum for a split second
+    APP.vj.rgbIntensity = 25; 
     triggerChromaticAberration();
-    
-    // TRANSITION FLASH: 100ms white flash
-    const ctx = APP.render.ctx;
-    const w = APP.render.width;
-    const h = APP.render.height;
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, w, h);
-    
-    // Stop current
+
+    // 2. STOP CURRENT MEDIA
     if (APP.media.currentElement?.tagName === 'VIDEO') {
         APP.media.currentElement.pause();
     }
-    
+
+    // 3. THE DATA SWAP
     APP.media.currentIndex = (APP.media.currentIndex + 1) % APP.media.queue.length;
     const item = APP.media.queue[APP.media.currentIndex];
-    APP.media.currentElement = item.element;
-    
+
+    // 4. PRE-BOOT NEXT ELEMENT
     if (item.type === 'video') {
         item.element.loop = !APP.state.isCycle;
         item.element.currentTime = 0;
         item.element.play().catch(() => {});
     }
-    
-    // Trigger glitch on swap
-    triggerImpact();
-    log(`MEDIA: ${APP.media.currentIndex + 1}/${APP.media.queue.length}`);
-    
-    // Continue cycle if active
-    checkCycleLogic();
+
+    // 5. THE SEAMLESS HANDOFF
+    APP.media.currentElement = item.element;
+
+    // 6. THE COOL-DOWN (Returns to normal VJ settings)
+    // This makes the glitch feel like a mechanical "clunk"
+    setTimeout(() => {
+        APP.vj.rgbIntensity = document.getElementById('sl-rgb').value;
+    }, 150);
+
+    log(`ENGINE: SNAP_OK [${APP.media.currentIndex + 1}]`);
 }
 
 function previousMedia() {
@@ -2164,20 +2160,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme
     document.querySelectorAll('.pal').forEach(p => p.onclick = () => setTheme(p.dataset.t));
     
-    // --- UPDATED SESSION WIRING ---
+    // --- STEP 1: SESSION WIRING (CLEANED) ---
     $('btn-save').onclick = saveSession;
     
-    // Logic: Left-click triggers the file browser
-    $('btn-load').onclick = () => vgdInput.click(); 
-    
-    // Logic: Right-click triggers the internal browser memory
-    $('btn-load').oncontextmenu = (e) => { 
-        e.preventDefault(); 
-        loadSession(); 
-    };
-
-    $('btn-export-dna').onclick = exportDNA;
-    // --- VGD FILE IMPORT WIRING ---
+    // Create the hidden VGD file input
     const vgdInput = document.createElement('input');
     vgdInput.type = 'file';
     vgdInput.accept = '.vgd';
@@ -2185,11 +2171,16 @@ document.addEventListener('DOMContentLoaded', () => {
     vgdInput.onchange = e => importVGD(e.target);
     document.body.appendChild(vgdInput);
 
-    // This makes it so RIGHT-CLICKING the Load button opens a file browser
+    // LEFT CLICK: Open File Browser (Sovereign Portability)
+    $('btn-load').onclick = () => vgdInput.click(); 
+    
+    // RIGHT CLICK: Load from Browser Memory (Internal Persistence)
     $('btn-load').oncontextmenu = (e) => { 
         e.preventDefault(); 
-        vgdInput.click(); 
+        loadSession(); 
     };
+
+    $('btn-export-dna').onclick = exportDNA;
     $('btn-projector').onclick = openProjector;
     $('btn-capture30').onclick = capture30s;
     $('btn-enter-vr').onclick = enterVR;
