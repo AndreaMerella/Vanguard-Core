@@ -1765,7 +1765,6 @@ function loadSession() {
     }
 } // <--- THIS IS THE CRITICAL CLOSING BRACE FOR loadSession
 
-// Now importVGD is a standalone function again
 function importVGD(input) {
     const file = input.files[0];
     if (!file) return;
