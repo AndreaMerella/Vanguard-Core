@@ -1248,29 +1248,19 @@ function setSpatialMode(mode) {
             positionAudio(0, 0, -1);
             log('MODE: STEREO');
             break;
-            
         case '3d':
             APP.audio.spatialEnabled = true; 
             APP.audio.panner.panningModel = 'HRTF';
-            APP.audio.panner.distanceModel = 'inverse';
             positionAudio(0, 0, -2);
-            log('MODE: 3D_HRTF');
+            log('MODE: 3D');
             break;
-            
         case 'dolby':
             APP.audio.spatialEnabled = true; 
-            APP.audio.panner.panningModel = 'HRTF';
-            APP.audio.panner.distanceModel = 'linear';
-            positionAudio(0, 5, -2); 
-            
-            if (APP.audio.compressor) {
-                APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
-                APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
-            }
-            log('MODE: DOLBY_LOCKED');
+            positionAudio(0, 5, -2);
+            log('MODE: DOLBY');
             break;
-    }
-}
+    } // Closes Switch
+} // Closes Function
 
 function toggleSpatialAudio() {
     if (APP.audio.spatialMode === '3d') {
@@ -1758,21 +1748,24 @@ function loadSession() {
 
         // ——— FIND THIS SECTION IN loadSession() AND REPLACE ———
 // 3. Sync UI Buttons (Sovereign Safe-Sync)
-const uiButtons = {
-    'btn-trails': APP.vj.trailsEnabled,
-    'btn-rgb': APP.vj.rgbEnabled,
-    'btn-pixelate': APP.vj.pixelateEnabled,
-    'btn-rumble': APP.vj.rumbleEnabled,
-    'btn-ui-react': APP.vj.uiReactivity
-};
+        const uiButtons = {
+            'btn-trails': APP.vj.trailsEnabled,
+            'btn-rgb': APP.vj.rgbEnabled,
+            'btn-pixelate': APP.vj.pixelateEnabled,
+            'btn-rumble': APP.vj.rumbleEnabled,
+            'btn-ui-react': APP.vj.uiReactivity
+        };
 
-Object.entries(uiButtons).forEach(([id, state]) => {
-    const el = $(id);
-    if (el) el.classList.toggle('on', !!state);
-});
-// ——————————————————————————————————————————————————————
+        Object.entries(uiButtons).forEach(([id, state]) => {
+            const el = $(id);
+            if (el) el.classList.toggle('on', !!state);
+        });
+    } catch (err) {
+        log('SESSION_LOAD_ERR');
+    }
+} // <--- THIS IS THE CRITICAL CLOSING BRACE FOR loadSession
 
-// Add this so you can actually use the .vgd files you export
+// Now importVGD is a standalone function again
 function importVGD(input) {
     const file = input.files[0];
     if (!file) return;
@@ -1781,7 +1774,6 @@ function importVGD(input) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            // Save to localStorage so loadSession can pick it up
             localStorage.setItem('dris_v22', JSON.stringify(data));
             loadSession(); 
             log('VGD_DNA_INJECTED');
