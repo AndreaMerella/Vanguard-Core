@@ -1,14 +1,5 @@
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DRIS//core VNGRD v22.1 — HYBRID BROADCAST MONSTER
-// ═══════════════════════════════════════════════════════════════════════════
-
 const $ = id => document.getElementById(id);
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MASTER APP OBJECT
-// ═══════════════════════════════════════════════════════════════════════════
 const APP = {
     state: {
         isLive: false,
@@ -42,7 +33,6 @@ const APP = {
         lastBassLevel: 0
     },
 
-    // Stored VJ state for impact recovery
     vjSnapshot: null,
 
     media: {
@@ -64,8 +54,7 @@ const APP = {
         vuData: new Uint8Array(32),
         isPlaying: false,
         isConnected: false,
-        // Spatial Audio & Broadcast Chain
-        spatialMode: 'stereo', // 'stereo', '3d', 'dolby'
+        spatialMode: 'stereo',
         spatialEnabled: false,
         panner: null,
         compressor: null,
@@ -73,24 +62,21 @@ const APP = {
         listener: null
     },
 
-    // Projector (Clean Feed)
     projector: {
         window: null,
         stream: null,
         isOpen: false
     },
 
-    // Time Machine (Rolling Buffer)
     timeMachine: {
         recorder: null,
         chunks: [],
         stream: null,
         audioDest: null,
         isRecording: false,
-        maxDuration: 30000 // 30 seconds
+        maxDuration: 30000 
     },
 
-    // WebXR
     xr: {
         supported: false,
         checked: false,
@@ -100,7 +86,6 @@ const APP = {
         vjTexture: null,
         shaderProgram: null,
         quadBuffer: null,
-        // Shader locations
         aPosition: null,
         aTexCoord: null,
         uProjection: null,
@@ -108,7 +93,6 @@ const APP = {
         uTexture: null
     },
 
-    // WebRTC Guest Module (PeerJS)
     guest: {
         peer: null,
         connection: null,
@@ -119,9 +103,8 @@ const APP = {
         peerId: null
     },
 
-    // Sovereign Security Module
     security: {
-        purge: null // Function assigned at runtime
+        purge: null 
     },
 
     camera: {
@@ -150,8 +133,8 @@ const APP = {
         visible: true,
         text: 'DRIS//core',
         image: null,
-        scale: 1.0,      // New: Professional sizing
-        style: 'cyan'    // New: Signature Branding DNA
+        scale: 1.0,
+        style: 'cyan'
     },
 
     lowerThird: {
@@ -166,7 +149,7 @@ const APP = {
         morphs: ['m1','m2','m3','m4','m5','m6','m7','m8','m9','m10','m11','m12','m13','m14','m15']
     }
 };
-/* --- PARTY MODE THEME ENGINE --- */
+
 const partyThemes = ['theme-cyan', 'theme-magenta', 'theme-green', 'theme-purple', 'theme-gold'];
 let currentThemeIndex = 0;
 
@@ -175,11 +158,10 @@ function cyclePartyThemes() {
     currentThemeIndex = (currentThemeIndex + 1) % partyThemes.length;
     document.body.classList.add(partyThemes[currentThemeIndex]);
 }
-// ═══════════════════════════════════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════
+
 function log(msg) {
     const box = $('sys-log');
+    if (!box) return; 
     const ts = new Date().toTimeString().split(' ')[0];
     const el = document.createElement('div');
     el.className = 'log-line';
@@ -197,23 +179,15 @@ function checkMobile() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CANVAS INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════
 function initCanvas() {
     APP.render.canvas = $('vj-canvas');
-    
-    // desynchronized: true is critical for low-latency VJing
     APP.render.ctx = APP.render.canvas.getContext('2d', { 
         alpha: false, 
         desynchronized: true,
         willReadFrequently: false 
     });
-    
-    // Tell the browser this is a high-performance layer
     APP.render.canvas.style.transform = 'translateZ(0)';
     APP.render.canvas.style.backfaceVisibility = 'hidden';
-    
     resizeCanvas();
     window.addEventListener('resize', () => {
         resizeCanvas();
@@ -225,39 +199,31 @@ function initCanvas() {
 function resizeCanvas() {
     APP.render.canvas.width = APP.render.width;
     APP.render.canvas.height = APP.render.height;
-    $('res').textContent = `${APP.render.width}x${APP.render.height}`;
+    if($('res')) $('res').textContent = `${APP.render.width}x${APP.render.height}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 60FPS RENDER LOOP
-// ═══════════════════════════════════════════════════════════════════════════
 function renderLoop(timestamp) {
     APP.render.rafId = requestAnimationFrame(renderLoop);
-    
-    // FPS
     APP.render.frameCount++;
     if (timestamp - APP.render.lastFpsUpdate >= 1000) {
         APP.render.fps = APP.render.frameCount;
         APP.render.frameCount = 0;
         APP.render.lastFpsUpdate = timestamp;
-        $('fps-val').textContent = APP.render.fps;
+        if($('fps-val')) $('fps-val').textContent = APP.render.fps;
     }
     
     const ctx = APP.render.ctx;
     const w = APP.render.width;
     const h = APP.render.height;
     
-    // Precision Rendering - crisp pixels, no blur
     ctx.imageSmoothingEnabled = false;
     
-    // RUMBLE SCALE (Bass-linked)
     if (APP.vj.rumbleEnabled && APP.audio.bassLevel > 100) {
         APP.render.scale = 1.0 + (APP.audio.bassLevel / 255) * 0.06;
     } else {
         APP.render.scale = 1.0;
     }
     
-    // TRAILS
     if (APP.vj.trailsEnabled) {
         ctx.globalAlpha = APP.vj.trailAlpha;
         ctx.save();
@@ -272,12 +238,10 @@ function renderLoop(timestamp) {
         ctx.fillRect(0, 0, w, h);
     }
     
-    // DRAW SOURCE (Priority: Guest > Live Camera > Media Queue)
     let source = null;
     let forceFullBleed = false;
     
     if (APP.guest.stream && APP.guest.isActive) {
-        // Guest stream takes priority - create video element if needed
         if (!APP.guest.videoElement) {
             APP.guest.videoElement = document.createElement('video');
             APP.guest.videoElement.srcObject = APP.guest.stream;
@@ -286,7 +250,7 @@ function renderLoop(timestamp) {
             APP.guest.videoElement.play().catch(() => {});
         }
         source = APP.guest.videoElement;
-        forceFullBleed = true; // Guest always full-bleed
+        forceFullBleed = true; 
     } else if (APP.state.isLive && APP.camera.stream) {
         source = $('preview-vid');
     } else if (APP.media.currentElement) {
@@ -296,41 +260,31 @@ function renderLoop(timestamp) {
     if (source) {
         const ready = source.tagName === 'VIDEO' ? source.readyState >= 2 : source.complete;
         if (ready) {
-            // VJ filter
             ctx.filter = `brightness(${APP.vj.brightness}) contrast(${APP.vj.contrast}) saturate(${APP.vj.saturation}) hue-rotate(${APP.vj.hue}deg)${APP.vj.invert ? ' invert(1)' : ''}`;
             
-            // ADAPTIVE SCALING: Full-bleed in fullscreen or guest, safe area in windowed
             const srcW = source.videoWidth || source.naturalWidth || source.width;
             const srcH = source.videoHeight || source.naturalHeight || source.height;
-            
             let scale, drawW, drawH, drawX, drawY;
             
             if (APP.state.isFullscreen || forceFullBleed) {
-                // FULL-BLEED: Cover entire screen (may crop)
                 scale = Math.max(w / srcW, h / srcH) * APP.render.scale;
-                drawW = srcW * scale;
-                drawH = srcH * scale;
-                drawX = (w - drawW) / 2;
-                drawY = (h - drawH) / 2;
             } else {
-                // SOVEREIGN SAFE AREA: Contain with 5% margin
                 const safeW = w * 0.9;
                 const safeH = h * 0.9;
                 scale = Math.min(safeW / srcW, safeH / srcH) * APP.render.scale;
-                drawW = srcW * scale;
-                drawH = srcH * scale;
-                drawX = (w - drawW) / 2;
-                drawY = (h - drawH) / 2;
             }
+            
+            drawW = srcW * scale;
+            drawH = srcH * scale;
+            drawX = (w - drawW) / 2;
+            drawY = (h - drawH) / 2;
             
             ctx.drawImage(source, drawX, drawY, drawW, drawH);
             ctx.filter = 'none';
         }
     }
     
-    // GPU PIXELATE ENGINE (Fixed-size offscreen canvas)
     if (APP.vj.pixelateEnabled && APP.vj.pixelSize > 1) {
-        // Create fixed 64x36 downscale canvas once (16:9 @ 64px wide)
         if (!APP.render.pixelCanvas) {
             APP.render.pixelCanvas = document.createElement('canvas');
             APP.render.pixelCanvas.width = 64;
@@ -339,18 +293,15 @@ function renderLoop(timestamp) {
             APP.render.pixelCtx.imageSmoothingEnabled = false;
         }
         
-        // Stage 1: Downsample to tiny canvas (GPU accelerated)
         const downScale = Math.max(1, Math.floor(APP.vj.pixelSize / 2));
         const tW = Math.floor(64 / downScale);
         const tH = Math.floor(36 / downScale);
         APP.render.pixelCtx.drawImage(APP.render.canvas, 0, 0, tW, tH);
         
-        // Stage 2: Upsample back to full size (no smoothing = blocky pixels)
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(APP.render.pixelCanvas, 0, 0, tW, tH, 0, 0, w, h);
     }
     
-    // RGB Shift: Apply via CSS filter (GPU-accelerated)
     if (APP.vj.rgbEnabled && APP.vj.rgbIntensity > 0) {
         let offset = APP.vj.rgbIntensity;
         if (APP.vj.rgbBassLink) offset = Math.floor((APP.audio.bassLevel / 255) * APP.vj.rgbIntensity * 2);
@@ -365,10 +316,10 @@ function renderLoop(timestamp) {
     
     APP.render.lastTime = timestamp;
 }
+
 function triggerSeismic(intensity = 1.0) {
     APP.vj.shakeIntensity = intensity;
     log('SEISMIC_MANUAL_OVERRIDE');
-    
     if (!APP.vj.rumbleEnabled) {
         const manualDecay = () => {
             if (APP.vj.shakeIntensity > 0.05) {
@@ -386,43 +337,27 @@ function triggerSeismic(intensity = 1.0) {
 }
 
 function applyGlobalShake() {
-    // 1. THE PARTY TRIGGER: If UI Reactivity is ON, swap the theme colors
-    if (APP.vj.uiReactivity) {
-        cyclePartyThemes(); 
-    }
-
-    // 2. THE SEISMIC PHYSICS: Calculate the 3D displacement
+    if (APP.vj.uiReactivity) cyclePartyThemes(); 
     const x = (Math.random() - 0.5) * 25 * APP.vj.shakeIntensity;
     const y = (Math.random() - 0.5) * 18 * APP.vj.shakeIntensity;
     const r = (Math.random() - 0.5) * 3 * APP.vj.shakeIntensity;
-    
-    // Target the console-wrapper we fixed in your HTML
     const target = $('console-wrapper') || document.body;
     target.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${r}deg)`;
 }
 
 function triggerChromaticAberration() {
-    // GPU-accelerated chromatic aberration via SVG filter
     const canvas = APP.render.canvas;
     canvas.style.filter = 'url(#chromatic-ghost)';
-    
-    setTimeout(() => {
-        canvas.style.filter = 'none';
-    }, 200);
+    setTimeout(() => { canvas.style.filter = 'none'; }, 200);
 }
 
 function impactStutter() {
-    // Snapshot current state
     const originalTrails = APP.vj.trailsEnabled;
     const originalAlpha = APP.vj.trailAlpha;
-    
     APP.vj.trailsEnabled = true;
     APP.vj.trailAlpha = 0.98;
-    
-    // FX ISOLATION: Canvas-only effects
     triggerChromaticAberration();
     log('IMPACT: STUTTER');
-    
     setTimeout(() => {
         APP.vj.trailsEnabled = originalTrails;
         APP.vj.trailAlpha = originalAlpha;
@@ -431,14 +366,9 @@ function impactStutter() {
 
 function impactInvert() {
     APP.vj.invert = true;
-    
-    // FX ISOLATION: Canvas-only effects
     triggerChromaticAberration();
     log('IMPACT: INVERT');
-    
-    setTimeout(() => {
-        APP.vj.invert = false;
-    }, 500);
+    setTimeout(() => { APP.vj.invert = false; }, 500);
 }
 
 function impactCrush() {
@@ -452,7 +382,6 @@ function impactCrush() {
     APP.vj.rgbIntensity = 25;
     APP.vj.pixelSize = 16;
     
-    // FX ISOLATION: Canvas-only effects (RGB + Pixelate already on canvas)
     log('IMPACT: CRUSH');
     
     setTimeout(() => {
@@ -463,12 +392,8 @@ function impactCrush() {
     }, 500);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MEDIA SYSTEM
-// ═══════════════════════════════════════════════════════════════════════════
 function loadMediaFiles(input) {
     const isFirstLoad = APP.media.currentIndex === -1;
-    
     Array.from(input.files).forEach((file, idx) => {
         const url = URL.createObjectURL(file);
         const type = file.type.startsWith('video') ? 'video' : 'image';
@@ -478,7 +403,7 @@ function loadMediaFiles(input) {
             const vid = document.createElement('video');
             vid.src = url;
             vid.muted = true;
-            vid.loop = !APP.state.isCycle; // Loop unless cycle active
+            vid.loop = !APP.state.isCycle;
             vid.playsInline = true;
             vid.preload = 'auto';
             item.element = vid;
@@ -490,81 +415,54 @@ function loadMediaFiles(input) {
         }
         
         APP.media.queue.push(item);
-        
-        // Immediately rotate on FIRST file added (no waiting)
-        if (isFirstLoad && idx === 0) {
-            rotateMedia();
-        }
+        if (isFirstLoad && idx === 0) rotateMedia();
     });
     
     updateQueueDisplay();
     $('media-dot').classList.remove('off');
-    
     log(`MEDIA: +${input.files.length}`);
-    
-    // Start cycle if active
     checkCycleLogic();
 }
 
 function rotateMedia() {
     if (APP.media.queue.length === 0) return;
-
-    // 1. THE SIGNATURE SHIELD (Heavier than normal VJing)
-    // We force the RGB split to its maximum for a split second
     APP.vj.rgbIntensity = 25; 
     triggerChromaticAberration();
 
-    // 2. STOP CURRENT MEDIA
     if (APP.media.currentElement?.tagName === 'VIDEO') {
         APP.media.currentElement.pause();
     }
 
-    // 3. THE DATA SWAP
     APP.media.currentIndex = (APP.media.currentIndex + 1) % APP.media.queue.length;
     const item = APP.media.queue[APP.media.currentIndex];
 
-    // 4. PRE-BOOT NEXT ELEMENT
     if (item.type === 'video') {
         item.element.loop = !APP.state.isCycle;
         item.element.currentTime = 0;
         item.element.play().catch(() => {});
     }
 
-    // 5. THE SEAMLESS HANDOFF
     APP.media.currentElement = item.element;
-
-    // 6. THE COOL-DOWN (Returns to normal VJ settings)
-    // This makes the glitch feel like a mechanical "clunk"
     setTimeout(() => {
         APP.vj.rgbIntensity = document.getElementById('sl-rgb').value;
     }, 150);
-
     log(`ENGINE: SNAP_OK [${APP.media.currentIndex + 1}]`);
 }
 
 function previousMedia() {
     if (APP.media.queue.length === 0) return;
-    
-    // INVERT SHIELD: Mask loading 'pop'
     APP.vj.invert = true;
     setTimeout(() => { APP.vj.invert = false; }, 50);
-    
-    // TRANSITION GLITCH: Chromatic aberration before swap
     triggerChromaticAberration();
     
-    // TRANSITION FLASH: 100ms white flash
     const ctx = APP.render.ctx;
-    const w = APP.render.width;
-    const h = APP.render.height;
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, APP.render.width, APP.render.height);
     
-    // Stop current
     if (APP.media.currentElement?.tagName === 'VIDEO') {
         APP.media.currentElement.pause();
     }
     
-    // Go back (Index - 1), wrap around
     APP.media.currentIndex = (APP.media.currentIndex - 1 + APP.media.queue.length) % APP.media.queue.length;
     const item = APP.media.queue[APP.media.currentIndex];
     APP.media.currentElement = item.element;
@@ -577,67 +475,48 @@ function previousMedia() {
     
     triggerImpact();
     log(`MEDIA: ${APP.media.currentIndex + 1}/${APP.media.queue.length}`);
-    
-    // Continue cycle if active
     checkCycleLogic();
 }
 
 function ejectCurrent() {
     if (APP.media.queue.length === 0) return;
-    
     const current = APP.media.queue[APP.media.currentIndex];
-    
-    // Stop and cleanup current media
     if (current.element?.tagName === 'VIDEO') {
         current.element.pause();
         current.element.src = '';
         current.element.remove();
     }
     URL.revokeObjectURL(current.url);
-    
-    // Splice out of queue
     APP.media.queue.splice(APP.media.currentIndex, 1);
     
     if (APP.media.queue.length === 0) {
-        // Queue empty - reset to black stage
         APP.media.currentIndex = -1;
         APP.media.currentElement = null;
         $('media-dot').classList.add('off');
-        
-        // Clear canvas to black
-        const ctx = APP.render.ctx;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, APP.render.width, APP.render.height);
+        APP.render.ctx.fillStyle = '#000';
+        APP.render.ctx.fillRect(0, 0, APP.render.width, APP.render.height);
         log('QUEUE_EMPTY');
     } else {
-        // Adjust index and play next
-        if (APP.media.currentIndex >= APP.media.queue.length) {
-            APP.media.currentIndex = 0;
-        }
+        if (APP.media.currentIndex >= APP.media.queue.length) APP.media.currentIndex = 0;
         const next = APP.media.queue[APP.media.currentIndex];
         APP.media.currentElement = next.element;
-        
         if (next.type === 'video') {
             next.element.currentTime = 0;
             next.element.play().catch(() => {});
         }
         log(`PLAYING: ${APP.media.currentIndex + 1}/${APP.media.queue.length}`);
     }
-    
     updateQueueDisplay();
     log('EJECTED');
 }
 
 function purgeAll() {
-    // Delegate to Sovereign Security module for comprehensive wipe
     if (APP.security.purge) {
         APP.security.purge();
     } else {
-        // Fallback: basic cleanup
         APP.media.queue.forEach(item => {
             if (item.element?.tagName === 'VIDEO') {
                 item.element.pause();
-                item.element.src = '';
                 item.element.remove();
             }
             URL.revokeObjectURL(item.url);
@@ -646,40 +525,28 @@ function purgeAll() {
         APP.media.currentIndex = -1;
         APP.media.currentElement = null;
         $('media-dot').classList.add('off');
-        
-        APP.audio.playlist = [];
-        APP.audio.currentTrack = -1;
         APP.audio.element.pause();
-        APP.audio.element.src = '';
-        APP.audio.isPlaying = false;
         $('audio-dot').classList.add('off');
-        $('track-info').textContent = 'NO TRACK';
-        
         updateQueueDisplay();
         log('PURGE_ALL');
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SMART CYCLE ENGINE (Unified Media Rotation)
-// ═══════════════════════════════════════════════════════════════════════════
 function toggleCycle() {
     APP.state.isCycle = !APP.state.isCycle;
     const btn = $('btn-cycle');
-    
     if (APP.state.isCycle) {
         btn.textContent = 'ON';
         btn.classList.add('on');
         btn.style.borderColor = 'var(--y)';
         $('cycle-badge').classList.add('on');
-        checkCycleLogic(); // Start immediately
+        checkCycleLogic();
     } else {
         btn.textContent = 'CYCLE: OFF';
         btn.classList.remove('on');
         btn.style.borderColor = 'var(--border)';
         $('cycle-badge').classList.remove('on');
         clearTimeout(APP.state.cycleTimer);
-        // Reset video looping
         if (APP.media.currentElement?.tagName === 'VIDEO') {
             APP.media.currentElement.loop = true;
         }
@@ -687,16 +554,12 @@ function toggleCycle() {
     log(APP.state.isCycle ? 'CYCLE_ACTIVE' : 'CYCLE_STOP');
 }
 
-// ROUTER (Handles Video vs Image logic)
 function checkCycleLogic() {
     clearTimeout(APP.state.cycleTimer);
     if (!APP.state.isCycle || APP.media.currentIndex === -1) return;
-
     const current = APP.media.queue[APP.media.currentIndex];
     if (!current) return;
-
     if (current.type === 'video') {
-        // VIDEO: Play full length, then auto-next
         if (current.element) {
             current.element.loop = false;
             current.element.onended = () => {
@@ -704,7 +567,6 @@ function checkCycleLogic() {
             };
         }
     } else {
-        // IMAGE: Use the input value for duration
         const secs = parseInt($('cycle-time').value) || 8;
         APP.state.cycleTimer = setTimeout(() => {
             if (APP.state.isCycle) rotateMedia();
@@ -713,23 +575,18 @@ function checkCycleLogic() {
 }
 
 function updateQueueDisplay() {
-    $('q-count').textContent = APP.media.queue.length;
+    const qCount = $('q-count');
+    if(qCount) qCount.textContent = APP.media.queue.length;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LOWER THIRDS
-// ═══════════════════════════════════════════════════════════════════════════
 function showLowerThird(preset) {
     const lt = $('lower-third');
     const container = lt.querySelector('.lt-container');
-    
     container.classList.remove('lt-guest', 'lt-track', 'lt-breaking');
     container.classList.add(`lt-${preset}`);
-    
     APP.lowerThird.preset = preset;
     APP.lowerThird.visible = true;
     
-    // Update content based on preset
     if (preset === 'track' && APP.audio.currentTrackName) {
         $('lt-title-text').textContent = APP.audio.currentTrackName;
         $('lt-subtitle-text').textContent = 'NOW PLAYING';
@@ -742,12 +599,9 @@ function showLowerThird(preset) {
     }
     
     lt.classList.add('visible');
-    
-    // Update button states
     ['guest', 'track', 'breaking', 'off'].forEach(p => {
         $(`btn-lt-${p}`).classList.toggle('on', p === preset);
     });
-    
     log(`LT: ${preset.toUpperCase()}`);
 }
 
@@ -761,16 +615,11 @@ function hideLowerThird() {
     log('LT: OFF');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STATION BUG
-// ═══════════════════════════════════════════════════════════════════════════
 function updateBug() {
     const bug = $('station-bug');
     if (APP.bug.image) {
-        // Clear text and show IMAGE ONLY
         bug.innerHTML = `<img src="${APP.bug.image}" alt="Logo" style="display:block; max-height:60px;">`;
     } else {
-        // Clear image and show TEXT ONLY
         bug.textContent = APP.bug.text || 'DRIS//core';
     }
 }
@@ -787,33 +636,22 @@ function loadLogoFile(input) {
     const reader = new FileReader();
     reader.onload = (e) => {
         APP.bug.image = e.target.result; 
-        
-        // Force the bug to be visible so the user sees the new logo
         APP.bug.visible = true;
         $('station-bug').classList.remove('hidden');
         $('btn-bug-toggle').classList.add('on');
-        
         updateBug();
         saveSession(); 
         log('LOGO_UPLOAD_SUCCESS');
     };
     reader.readAsDataURL(input.files[0]);
 }
-// Bug drag variables (initialized in DOMContentLoaded)
 let bugDragging = false, bugOffsetX = 0, bugOffsetY = 0;
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CAMERA SYSTEM
-// ═══════════════════════════════════════════════════════════════════════════
 async function initCamera() {
     try {
         APP.camera.stream = await navigator.mediaDevices.getUserMedia({
-            video: { 
-                width: { ideal: 1920, min: 1280 }, 
-                height: { ideal: 1080, min: 720 },
-                frameRate: { ideal: 60, min: 30 }
-            },
-            audio: false // Silent init - no mic popup
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } },
+            audio: false 
         });
         $('preview-vid').srcObject = APP.camera.stream;
         APP.camera.mode = 'preview';
@@ -823,17 +661,11 @@ async function initCamera() {
         $('btn-kill').style.display = 'block';
         $('cam-dot').classList.remove('off');
         log('CAM_READY');
-        
-        // UNLOCK AUDIO: Initialize AudioContext on user gesture
         if (!APP.audio.ctx) {
             APP.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
             log('AUDIO_CTX_UNLOCKED');
         }
-        
-        // ARM TIME MACHINE: User gesture required for MediaRecorder
         initTimeMachine();
-        
-        // Now enumerate audio outputs (permission already granted)
         enumerateAudioOutputs();
     } catch (e) {
         log('CAM_ERROR');
@@ -847,12 +679,12 @@ function goLive() {
     overlay.style.display = 'flex';
     let count = 3;
     num.textContent = count;
-    sovereignStrobe(); // Strobe on 3
+    sovereignStrobe(); 
     const interval = setInterval(() => {
         count--;
         if (count > 0) {
             num.textContent = count;
-            sovereignStrobe(); // Strobe on 2, 1
+            sovereignStrobe(); 
         } else {
             clearInterval(interval);
             overlay.style.display = 'none';
@@ -864,9 +696,9 @@ function goLive() {
             $('status-text').textContent = 'LIVE';
             $('main-dot').classList.add('live');
             document.querySelector('.preview-label').textContent = 'LIVE';
-            sovereignStrobe(); // Final strobe on LIVE
+            sovereignStrobe(); 
             log('LIVE');
-            if (APP.state.isCycle) toggleCycle(); // <--- ADD THIS AT THE VERY END
+            if (APP.state.isCycle) toggleCycle(); 
         }
     }, 1000);
 }
@@ -976,9 +808,6 @@ function killCamera() {
     log('CAM_OFF');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AUDIO SYSTEM
-// ═══════════════════════════════════════════════════════════════════════════
 APP.audio.element = $('audio-el');
 
 function loadAudioFiles(input) {
@@ -1005,50 +834,37 @@ function playTrack() {
     APP.audio.element.play().then(() => {
         APP.audio.isPlaying = true;
         $('track-info').textContent = track.name.toUpperCase();
-        
-        // Auto-update lower third if showing track
         if (APP.lowerThird.visible && APP.lowerThird.preset === 'track') {
             $('lt-title-text').textContent = track.name;
         }
-        
         log(`PLAY: ${track.name}`);
     });
-    
     if (!APP.audio.isConnected) setupAudioAnalyzer();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PRO-GRADE SPATIAL AUDIO ENGINE (DOLBY SIMULATION)
-// ═══════════════════════════════════════════════════════════════════════════
 function setupAudioAnalyzer() {
     try {
         if (!APP.audio.ctx) APP.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // 1. Create the Nodes
         APP.audio.source = APP.audio.ctx.createMediaElementSource(APP.audio.element);
         APP.audio.analyzer = APP.audio.ctx.createAnalyser();
         APP.audio.panner = APP.audio.ctx.createPanner();
         APP.audio.compressor = APP.audio.ctx.createDynamicsCompressor();
         APP.audio.masterGain = APP.audio.ctx.createGain();
         
-        // 2. Configure the Panner (HRTF is the Pro Standard)
         APP.audio.panner.panningModel = 'HRTF';
         APP.audio.panner.distanceModel = 'inverse';
         APP.audio.panner.refDistance = 1;
         
-        // 3. Configure the Broadcast Limiter (The "Dolby" Glue)
         APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
         APP.audio.compressor.knee.setValueAtTime(30, APP.audio.ctx.currentTime);
         APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
         APP.audio.compressor.attack.setValueAtTime(0.003, APP.audio.ctx.currentTime);
         APP.audio.compressor.release.setValueAtTime(0.25, APP.audio.ctx.currentTime);
         
-        // 4. Configure Visuals & Headroom
         APP.audio.analyzer.fftSize = 64;
         APP.audio.masterGain.gain.setValueAtTime(0.9, APP.audio.ctx.currentTime);
         
-        // 5. THE SERIAL CHAIN (Top-Tier Routing)
-        // Source -> Panner -> Compressor -> Gain -> Analyzer -> Destination
         APP.audio.source
             .connect(APP.audio.panner)
             .connect(APP.audio.compressor)
@@ -1058,11 +874,8 @@ function setupAudioAnalyzer() {
         
         APP.audio.vuData = new Uint8Array(APP.audio.analyzer.frequencyBinCount);
         APP.audio.isConnected = true;
-        
-        // Default position: in front of listener (stereo feel)
         positionAudio(0, 0, -1);
         
-        // UI Update
         const vu = $('vu');
         vu.innerHTML = '';
         for (let i = 0; i < 16; i++) {
@@ -1070,7 +883,6 @@ function setupAudioAnalyzer() {
             bar.className = 'vu-bar';
             vu.appendChild(bar);
         }
-        
         updateVU();
         log('DAW_ENGINE_ACTIVE');
     } catch (e) { log('AUDIO_CHAIN_ERR: ' + e.message); }
@@ -1082,7 +894,6 @@ function updateVU() {
     
     APP.audio.analyzer.getByteFrequencyData(APP.audio.vuData);
     const bars = $('vu').children;
-    
     if (bars.length > 0) {
         for (let i = 0; i < bars.length; i++) {
             bars[i].style.height = Math.max(2, (APP.audio.vuData[i * 2] / 255) * 28) + 'px';
@@ -1093,7 +904,6 @@ function updateVU() {
     const bassDelta = currentBass - APP.vj.lastBassLevel;
     APP.audio.bassLevel = currentBass;
 
-    // --- 1. PARTY MODE ENGINE ---
     if (APP.vj.uiReactivity) {
         if (currentBass > 100 && bassDelta > 30) { 
             cyclePartyThemes(); 
@@ -1105,7 +915,6 @@ function updateVU() {
         }
     }
 
-    // --- 2. SEISMIC ENGINE (Whole UI Rumble) ---
     if (APP.vj.rumbleEnabled && bassDelta > 40 && currentBass > 150) {
         APP.vj.shakeIntensity = Math.min(1.2, currentBass / 180);
     }
@@ -1119,7 +928,6 @@ function updateVU() {
         target.style.transform = '';
     }
     
-    // --- 3. PRICE-ACTION LOGO PULSE ---
     if (APP.vj.uiReactivity && APP.audio.bassLevel > 180) {
         const btcUp = APP.state.lastPrices.btc > (APP.state.lastPrices.btc_prev || 0);
         if (btcUp) {
@@ -1141,25 +949,18 @@ function stopAudio() {
     log('STOP');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AUDIO OUTPUT DEVICE SELECTION
-// ═══════════════════════════════════════════════════════════════════════════
 async function enumerateAudioOutputs() {
     try {
-        // Silent enumeration - only show full labels if camera already initialized
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter(d => d.kind === 'audiooutput');
-        
         const select = $('audio-output');
         select.innerHTML = '<option value="">Default</option>';
-        
         outputs.forEach((device, i) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             option.textContent = device.label || `Output ${i + 1}`;
             select.appendChild(option);
         });
-        
         log(`OUTPUTS: ${outputs.length}`);
     } catch (e) {
         log('OUTPUT_ENUM_ERR');
@@ -1171,68 +972,32 @@ async function setAudioOutput(deviceId) {
         log('SINKID_NOT_SUPPORTED');
         return;
     }
-    
     try {
         await APP.audio.element.setSinkId(deviceId || '');
-        
-        // If we have an AudioContext with destination, we need to inform the user
-        // that setSinkId only affects the HTMLAudioElement, not the Web Audio API destination
-        // The entire chain (including spatial) flows through the element via MediaElementSource
-        
-        const label = deviceId ? 
-            $('audio-output').options[$('audio-output').selectedIndex].text : 
-            'Default';
+        const label = deviceId ? $('audio-output').options[$('audio-output').selectedIndex].text : 'Default';
         log(`OUTPUT: ${label}`);
     } catch (e) {
         log('OUTPUT_ERR: ' + e.message);
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PROJECTOR MODE (Clean Feed)
-// ═══════════════════════════════════════════════════════════════════════════
 function openProjector() {
     if (APP.projector.isOpen && APP.projector.window && !APP.projector.window.closed) {
         APP.projector.window.focus();
         return;
     }
-    
-    // Capture canvas stream at 60fps
     APP.projector.stream = APP.render.canvas.captureStream(60);
-    
-    // Open clean window
-    APP.projector.window = window.open('', 'DRIS_Projector', 
-        'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
+    APP.projector.window = window.open('', 'DRIS_Projector', 'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
     
     if (!APP.projector.window) {
         log('PROJECTOR_BLOCKED');
         return;
     }
     
-    APP.projector.window.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>DRIS//core PROJECTOR</title>
-            <style>
-                * { margin: 0; padding: 0; }
-                body { background: #000; overflow: hidden; }
-                video { width: 100vw; height: 100vh; object-fit: contain; }
-            </style>
-        </head>
-        <body>
-            <video id="projector-feed" autoplay muted playsinline></video>
-            <script>
-                document.getElementById('projector-feed').srcObject = window.opener.APP.projector.stream;
-            <\/script>
-        </body>
-        </html>
-    `);
+    APP.projector.window.document.write(`<!DOCTYPE html><html><head><title>DRIS//core PROJECTOR</title><style>*{margin:0;padding:0;}body{background:#000;overflow:hidden;}video{width:100vw;height:100vh;object-fit:contain;}</style></head><body><video id="projector-feed" autoplay muted playsinline></video><script>document.getElementById('projector-feed').srcObject = window.opener.APP.projector.stream;<\/script></body></html>`);
     
     APP.projector.isOpen = true;
     $('btn-projector').classList.add('on');
-    
-    // Monitor for close
     const checkClosed = setInterval(() => {
         if (APP.projector.window.closed) {
             clearInterval(checkClosed);
@@ -1241,114 +1006,66 @@ function openProjector() {
             log('PROJECTOR_CLOSED');
         }
     }, 1000);
-    
     log('PROJECTOR_OPEN');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SPATIAL AUDIO (3D HRTF)
-// ═══════════════════════════════════════════════════════════════════════════
 function setSpatialMode(mode) {
     if (!APP.audio.ctx || !APP.audio.panner) {
         log('LOAD_AUDIO_FIRST');
         return;
     }
-    
     APP.audio.spatialMode = mode;
-    
-    // Update button states
     $('btn-stereo').classList.toggle('on', mode === 'stereo');
     $('btn-spatial').classList.toggle('on', mode === '3d');
     $('btn-dolby').classList.toggle('on', mode === 'dolby');
     
     const listener = APP.audio.ctx.listener;
-    
     switch(mode) {
         case 'stereo':
-            // Standard stereo - sound directly in front
             APP.audio.panner.panningModel = 'equalpower';
             positionAudio(0, 0, -1);
             log('MODE: STEREO');
             break;
-            
         case '3d':
-            // HRTF binaural 3D positioning
             APP.audio.panner.panningModel = 'HRTF';
             APP.audio.panner.distanceModel = 'inverse';
             APP.audio.panner.refDistance = 1;
             APP.audio.panner.maxDistance = 10000;
             APP.audio.panner.rolloffFactor = 1;
-            
-            // Position listener facing forward
             if (listener.forwardZ) {
-                listener.positionX.value = 0;
-                listener.positionY.value = 0;
-                listener.positionZ.value = 0;
-                listener.forwardX.value = 0;
-                listener.forwardY.value = 0;
-                listener.forwardZ.value = -1;
-                listener.upX.value = 0;
-                listener.upY.value = 1;
-                listener.upZ.value = 0;
+                listener.positionX.value = 0; listener.positionY.value = 0; listener.positionZ.value = 0;
+                listener.forwardX.value = 0; listener.forwardY.value = 0; listener.forwardZ.value = -1;
+                listener.upX.value = 0; listener.upY.value = 1; listener.upZ.value = 0;
             }
-            
             positionAudio(0, 0, -2);
             log('MODE: 3D_HRTF');
             break;
-            
         case 'dolby':
-            // Dolby Atmos simulation - wider soundstage, height cues
             APP.audio.panner.panningModel = 'HRTF';
             APP.audio.panner.distanceModel = 'linear';
             APP.audio.panner.refDistance = 1;
             APP.audio.panner.maxDistance = 100;
             APP.audio.panner.rolloffFactor = 0.5;
-            
-            // Dolby-style: wider cone for immersive feel
             APP.audio.panner.coneInnerAngle = 360;
             APP.audio.panner.coneOuterAngle = 360;
             APP.audio.panner.coneOuterGain = 1;
-            
-            // Simulate Atmos "dome" - sound from above and around
             if (listener.forwardZ) {
-                listener.positionX.value = 0;
-                listener.positionY.value = 0;
-                listener.positionZ.value = 0;
-                listener.forwardX.value = 0;
-                listener.forwardY.value = 0;
-                listener.forwardZ.value = -1;
-                listener.upX.value = 0;
-                listener.upY.value = 1;
-                listener.upZ.value = 0;
+                listener.positionX.value = 0; listener.positionY.value = 0; listener.positionZ.value = 0;
+                listener.forwardX.value = 0; listener.forwardY.value = 0; listener.forwardZ.value = -1;
+                listener.upX.value = 0; listener.upY.value = 1; listener.upZ.value = 0;
             }
-            
-            // Position slightly above and in front (Atmos height channel feel)
             positionAudio(0, 1, -3);
-            
-            // Boost compressor for Dolby loudness profile
             if (APP.audio.compressor) {
                 APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
                 APP.audio.compressor.ratio.setValueAtTime(8, APP.audio.ctx.currentTime);
             }
-            
             log('MODE: DOLBY_ATMOS');
             break;
     }
 }
 
-// Legacy toggle function for backward compat
-function toggleSpatialAudio() {
-    if (APP.audio.spatialMode === '3d') {
-        setSpatialMode('stereo');
-    } else {
-        setSpatialMode('3d');
-    }
-}
-
-// Position audio in 3D space (x: left/right, y: up/down, z: front/back)
 function positionAudio(x, y, z) {
     if (!APP.audio.panner || !APP.audio.spatialEnabled) return;
-    
     if (APP.audio.panner.positionX) {
         APP.audio.panner.positionX.setValueAtTime(x, APP.audio.ctx.currentTime);
         APP.audio.panner.positionY.setValueAtTime(y, APP.audio.ctx.currentTime);
@@ -1358,20 +1075,12 @@ function positionAudio(x, y, z) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TIME MACHINE (Rolling 30s Buffer - Pro-Audio Tap)
-// ═══════════════════════════════════════════════════════════════════════════
 function initTimeMachine() {
-    // Create canvas stream at 60fps
     const canvasStream = APP.render.canvas.captureStream(60);
-    
-    // PRO-AUDIO TAP: Connect directly from masterGain (post Spatial/Dolby/Compressor)
     if (APP.audio.ctx && APP.audio.masterGain) {
         try {
             APP.timeMachine.audioDest = APP.audio.ctx.createMediaStreamDestination();
             APP.audio.masterGain.connect(APP.timeMachine.audioDest);
-            
-            // Add the processed audio track to canvas stream
             const audioTrack = APP.timeMachine.audioDest.stream.getAudioTracks()[0];
             if (audioTrack) {
                 canvasStream.addTrack(audioTrack);
@@ -1381,165 +1090,89 @@ function initTimeMachine() {
             log('TIMEMACHINE: VIDEO_ONLY');
         }
     }
-    
     APP.timeMachine.stream = canvasStream;
-    
-    // CODEC ENFORCEMENT: VP9 video + Opus audio at 8Mbps
-    const options = { 
-        mimeType: 'video/webm;codecs=vp9,opus', 
-        videoBitsPerSecond: 8000000,
-        audioBitsPerSecond: 128000
-    };
-    
+    const options = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8000000, audioBitsPerSecond: 128000 };
     try {
         APP.timeMachine.recorder = new MediaRecorder(canvasStream, options);
     } catch (e) {
-        // Fallback if opus not supported
         try {
-            APP.timeMachine.recorder = new MediaRecorder(canvasStream, { 
-                mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 8000000 
-            });
+            APP.timeMachine.recorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 });
         } catch (e2) {
             APP.timeMachine.recorder = new MediaRecorder(canvasStream);
         }
     }
-    
     APP.timeMachine.chunks = [];
-    
     APP.timeMachine.recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
             APP.timeMachine.chunks.push({ data: e.data, time: Date.now() });
-            
-            // Prune chunks older than 30s
             const cutoff = Date.now() - APP.timeMachine.maxDuration;
             APP.timeMachine.chunks = APP.timeMachine.chunks.filter(c => c.time > cutoff);
         }
     };
-    
-    // Record in 1-second intervals for granular buffer
     APP.timeMachine.recorder.start(1000);
     APP.timeMachine.isRecording = true;
-    
     log('TIMEMACHINE: ARMED_60FPS');
 }
 
 function capture30s() {
     if (!APP.timeMachine.isRecording || APP.timeMachine.chunks.length === 0) {
-        // Initialize if not running
         initTimeMachine();
         $('btn-capture30').textContent = 'BUFFERING...';
         setTimeout(() => {
             $('btn-capture30').textContent = 'CAPTURE 30s';
-            if (APP.timeMachine.chunks.length > 0) {
-                downloadTimeMachine();
-            } else {
-                log('TIMEMACHINE: NO_DATA');
-            }
+            if (APP.timeMachine.chunks.length > 0) downloadTimeMachine();
+            else log('TIMEMACHINE: NO_DATA');
         }, 2000);
         return;
     }
-    
     downloadTimeMachine();
 }
 
 function downloadTimeMachine() {
-    // VISUAL CONFIRMATION: 200ms white strobe
-    sovereignStrobe();
-    
-    // Combine all chunks
+    sovereignStrobe(); 
     const blobs = APP.timeMachine.chunks.map(c => c.data);
     const finalBlob = new Blob(blobs, { type: 'video/webm' });
-    
-    // Download
     const a = document.createElement('a');
     a.href = URL.createObjectURL(finalBlob);
     a.download = `DRIS_TimeMachine_${Date.now()}.webm`;
     a.click();
-    
     const duration = Math.round(APP.timeMachine.chunks.length);
     log(`TIMEMACHINE: CAPTURED_${duration}s`);
 }
 
 function sovereignStrobe() {
-    // Quick white flash on canvas for visual confirmation
     const ctx = APP.render.ctx;
     const w = APP.render.width;
     const h = APP.render.height;
-    
-    // Store current composite operation
     const prevOp = ctx.globalCompositeOperation;
-    
-    // Flash white
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.fillRect(0, 0, w, h);
-    
-    // Restore after 200ms (render loop will naturally overwrite)
-    setTimeout(() => {
-        ctx.globalCompositeOperation = prevOp;
-    }, 200);
-    
+    setTimeout(() => { ctx.globalCompositeOperation = prevOp; }, 200);
     triggerImpact();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// WEBXR (VR/AR Support)
-// ═══════════════════════════════════════════════════════════════════════════
 async function initXR() {
-    if (!navigator.xr) {
-        APP.xr.supported = false;
-        return;
-    }
-    
+    if (!navigator.xr) { APP.xr.supported = false; return; }
     try {
         APP.xr.supported = await navigator.xr.isSessionSupported('immersive-vr');
-        if (APP.xr.supported) {
-            $('btn-enter-vr').style.display = 'block';
-            log('VR_AVAILABLE');
-        }
-    } catch (e) {
-        APP.xr.supported = false;
-    }
+        if (APP.xr.supported) { $('btn-enter-vr').style.display = 'block'; log('VR_AVAILABLE'); }
+    } catch (e) { APP.xr.supported = false; }
 }
 
 async function enterVR() {
-    // Init XR on first click (avoids permission prompt at startup)
-    if (!APP.xr.checked) {
-        await initXR();
-        APP.xr.checked = true;
-    }
-    
-    if (!APP.xr.supported) {
-        log('VR_NOT_SUPPORTED');
-        return;
-    }
-    
+    if (!APP.xr.checked) { await initXR(); APP.xr.checked = true; }
+    if (!APP.xr.supported) { log('VR_NOT_SUPPORTED'); return; }
     try {
-        APP.xr.session = await navigator.xr.requestSession('immersive-vr', {
-            requiredFeatures: ['local-floor']
-        });
-        
-        APP.xr.session.addEventListener('end', () => {
-            APP.xr.session = null;
-            $('btn-enter-vr').classList.remove('on');
-            log('VR_EXIT');
-        });
-        
+        APP.xr.session = await navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['local-floor'] });
+        APP.xr.session.addEventListener('end', () => { APP.xr.session = null; $('btn-enter-vr').classList.remove('on'); log('VR_EXIT'); });
         $('btn-enter-vr').classList.add('on');
-        
-        // Get reference space
         APP.xr.refSpace = await APP.xr.session.requestReferenceSpace('local-floor');
-        
-        // Create XR-compatible WebGL2 context
         const gl = APP.render.canvas.getContext('webgl2', { xrCompatible: true });
         APP.xr.gl = gl;
-        
         if (gl) {
             const baseLayer = new XRWebGLLayer(APP.xr.session, gl);
             APP.xr.session.updateRenderState({ baseLayer });
-            
-            // Initialize VJ Texture for streaming canvas
             APP.xr.vjTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, APP.xr.vjTexture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1547,173 +1180,85 @@ async function enterVR() {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             
-            // Create 16:9 quad vertices (3m back, eye level 1.6m)
-            // Screen size: ~5.33m x 3m (cinema scale)
-            const quadVerts = new Float32Array([
-                // Position (x,y,z), TexCoord (u,v)
-                -2.67, 3.1, -3,   0, 0,  // Top-left
-                 2.67, 3.1, -3,   1, 0,  // Top-right
-                -2.67, 0.1, -3,   0, 1,  // Bottom-left
-                 2.67, 0.1, -3,   1, 1   // Bottom-right
-            ]);
-            
+            const quadVerts = new Float32Array([-2.67, 3.1, -3, 0, 0, 2.67, 3.1, -3, 1, 0, -2.67, 0.1, -3, 0, 1, 2.67, 0.1, -3, 1, 1]);
             APP.xr.quadBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, APP.xr.quadBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
             
-            // SOVEREIGN SHADER: Vertex shader
-            const vsSource = `
-                attribute vec3 aPosition;
-                attribute vec2 aTexCoord;
-                uniform mat4 uProjection;
-                uniform mat4 uView;
-                varying vec2 vTexCoord;
-                void main() {
-                    gl_Position = uProjection * uView * vec4(aPosition, 1.0);
-                    vTexCoord = aTexCoord;
-                }
-            `;
+            const vsSource = `attribute vec3 aPosition;attribute vec2 aTexCoord;uniform mat4 uProjection;uniform mat4 uView;varying vec2 vTexCoord;void main() {gl_Position = uProjection * uView * vec4(aPosition, 1.0);vTexCoord = aTexCoord;}`;
+            const fsSource = `precision mediump float;uniform sampler2D uTexture;varying vec2 vTexCoord;void main() {gl_FragColor = texture2D(uTexture, vTexCoord);}`;
             
-            // SOVEREIGN SHADER: Fragment shader
-            const fsSource = `
-                precision mediump float;
-                uniform sampler2D uTexture;
-                varying vec2 vTexCoord;
-                void main() {
-                    gl_FragColor = texture2D(uTexture, vTexCoord);
-                }
-            `;
-            
-            // Compile shaders
             const vs = gl.createShader(gl.VERTEX_SHADER);
-            gl.shaderSource(vs, vsSource);
-            gl.compileShader(vs);
-            
+            gl.shaderSource(vs, vsSource); gl.compileShader(vs);
             const fs = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(fs, fsSource);
-            gl.compileShader(fs);
+            gl.shaderSource(fs, fsSource); gl.compileShader(fs);
             
-            // Link program
             APP.xr.shaderProgram = gl.createProgram();
-            gl.attachShader(APP.xr.shaderProgram, vs);
-            gl.attachShader(APP.xr.shaderProgram, fs);
-            gl.linkProgram(APP.xr.shaderProgram);
+            gl.attachShader(APP.xr.shaderProgram, vs); gl.attachShader(APP.xr.shaderProgram, fs); gl.linkProgram(APP.xr.shaderProgram);
             
-            // Get attribute/uniform locations
             APP.xr.aPosition = gl.getAttribLocation(APP.xr.shaderProgram, 'aPosition');
             APP.xr.aTexCoord = gl.getAttribLocation(APP.xr.shaderProgram, 'aTexCoord');
             APP.xr.uProjection = gl.getUniformLocation(APP.xr.shaderProgram, 'uProjection');
             APP.xr.uView = gl.getUniformLocation(APP.xr.shaderProgram, 'uView');
             APP.xr.uTexture = gl.getUniformLocation(APP.xr.shaderProgram, 'uTexture');
             
-            // Lock broadcast compressor for visor density
-            if (APP.audio.compressor) {
-                APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
-            }
-            
-            // Position Dolby audio listener at eye level
+            if (APP.audio.compressor) APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
             if (APP.audio.ctx && APP.audio.ctx.listener) {
                 const listener = APP.audio.ctx.listener;
-                if (listener.positionX) {
-                    listener.positionX.value = 0;
-                    listener.positionY.value = 1.6;
-                    listener.positionZ.value = 0;
-                }
+                if (listener.positionX) { listener.positionX.value = 0; listener.positionY.value = 1.6; listener.positionZ.value = 0; }
             }
-            
-            // Start XR render loop
             APP.xr.session.requestAnimationFrame(xrRenderLoop);
             log('VR_WEBGL_BRIDGE_ACTIVE');
         }
-        
         log('VR_ENTER');
-    } catch (e) {
-        log('VR_ERROR: ' + e.message);
-    }
+    } catch (e) { log('VR_ERROR: ' + e.message); }
 }
 
 function xrRenderLoop(time, frame) {
     if (!APP.xr.session) return;
-    
     APP.xr.session.requestAnimationFrame(xrRenderLoop);
-    
     const pose = frame.getViewerPose(APP.xr.refSpace);
     if (!pose) return;
-    
     const glLayer = APP.xr.session.renderState.baseLayer;
     const gl = APP.xr.gl;
-    
     gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-    // Stream VJ canvas to texture
     if (APP.xr.vjTexture) {
         gl.bindTexture(gl.TEXTURE_2D, APP.xr.vjTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, APP.render.canvas);
     }
-    
-    // Use Sovereign Shader
     gl.useProgram(APP.xr.shaderProgram);
-    
-    // Bind VJ texture to unit 0
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, APP.xr.vjTexture);
     gl.uniform1i(APP.xr.uTexture, 0);
-    
-    // Setup vertex attributes
     gl.bindBuffer(gl.ARRAY_BUFFER, APP.xr.quadBuffer);
-    
-    // Position attribute (3 floats, stride 20 bytes, offset 0)
     gl.enableVertexAttribArray(APP.xr.aPosition);
     gl.vertexAttribPointer(APP.xr.aPosition, 3, gl.FLOAT, false, 20, 0);
-    
-    // TexCoord attribute (2 floats, stride 20 bytes, offset 12)
     gl.enableVertexAttribArray(APP.xr.aTexCoord);
     gl.vertexAttribPointer(APP.xr.aTexCoord, 2, gl.FLOAT, false, 20, 12);
-    
-    // Render floating cinema screen for each eye
     for (const view of pose.views) {
         const viewport = glLayer.getViewport(view);
         gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
-        
-        // Set projection and view matrices from XR pose
         gl.uniformMatrix4fv(APP.xr.uProjection, false, view.projectionMatrix);
         gl.uniformMatrix4fv(APP.xr.uView, false, view.transform.inverse.matrix);
-        
-        // DRAW THE QUAD: 4 vertices as triangle strip
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
-    
-    // Cleanup
     gl.disableVertexAttribArray(APP.xr.aPosition);
     gl.disableVertexAttribArray(APP.xr.aTexCoord);
 }
-// ═══════════════════════════════════════════════════════════════════════════
-// IMPACT FX HELPER
-// ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// IMPACT FX HELPER
-// ═══════════════════════════════════════════════════════════════════════════
+
 function triggerImpact() {
     const canvas = APP.render.canvas;
     if (!canvas) return;
-    
-    // Tactile Feedback: A quick "kick" to the visuals
     canvas.style.filter = 'brightness(1.8) contrast(1.2)';
-    setTimeout(() => {
-        canvas.style.filter = 'none';
-    }, 50);
+    setTimeout(() => { canvas.style.filter = 'none'; }, 50);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MASTER RESET
-// ═══════════════════════════════════════════════════════════════════════════
 function masterReset() {
     document.body.classList.remove('vhs', 'crt');
     $('btn-vhs').classList.remove('on');
     $('btn-crt').classList.remove('on');
-    
     APP.vj = {
         brightness: 1.0, contrast: 1.0, saturation: 1.0, hue: 0,
         trailsEnabled: false, trailAlpha: 0.92,
@@ -1721,7 +1266,6 @@ function masterReset() {
         pixelateEnabled: false, pixelSize: 1,
         rumbleEnabled: false, invert: false, uiReactivity: true
     };
-    
     $('sl-b').value = 100; $('val-b').textContent = '100%';
     $('sl-c').value = 100; $('val-c').textContent = '100%';
     $('sl-s').value = 100; $('val-s').textContent = '100%';
@@ -1729,16 +1273,11 @@ function masterReset() {
     $('sl-trail').value = 92; $('val-trail').textContent = '0.92';
     $('sl-rgb').value = 0; $('val-rgb').textContent = '0';
     $('sl-pix').value = 1; $('val-pix').textContent = '1';
-    
     ['btn-trails', 'btn-rgb', 'btn-pixelate', 'btn-bass-link', 'btn-rumble', 'btn-ui-react'].forEach(id => $(id).classList.remove('on'));
-    
     triggerImpact();
     log('MASTER_RESET');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// UI CONTROLS
-// ═══════════════════════════════════════════════════════════════════════════
 function setTheme(theme) {
     document.body.className = document.body.className.replace(/theme-\w+/g, '');
     if (theme !== 'cyan') document.body.classList.add(`theme-${theme}`);
@@ -1749,7 +1288,6 @@ function setTheme(theme) {
 
 function toggleVHS() { document.body.classList.toggle('vhs'); $('btn-vhs').classList.toggle('on'); log('VHS'); }
 function toggleCRT() { document.body.classList.toggle('crt'); $('btn-crt').classList.toggle('on'); log('CRT'); }
-
 function toggleFullscreen() {
     APP.state.isFullscreen = !APP.state.isFullscreen;
     document.body.classList.toggle('fullscreen', APP.state.isFullscreen);
@@ -1775,67 +1313,37 @@ async function fetchCrypto() {
     try {
         const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd');
         const data = await res.json();
-        
-        // Define assets for the loop
         const assets = [
             { id: 'btc', apiId: 'bitcoin', symbol: 'BTC', price: data.bitcoin.usd },
             { id: 'eth', apiId: 'ethereum', symbol: 'ETH', price: data.ethereum.usd },
             { id: 'sol', apiId: 'solana', symbol: 'SOL', price: data.solana.usd }
         ];
-
         let tickerHtml = '';
-
         assets.forEach((asset, index) => {
             const lastPrice = APP.state.lastPrices[asset.id] || asset.price;
-            
-            // 1. Determine Direction & CSS Class
             const direction = asset.price > lastPrice ? '▲' : asset.price < lastPrice ? '▼' : '—';
             const statusClass = asset.price > lastPrice ? 'price-up' : asset.price < lastPrice ? 'price-down' : '';
-            
-            // 2. Format Price (e.g., 64.2K)
-            const displayPrice = asset.price >= 1000 
-                ? (asset.price / 1000).toFixed(1) + 'K' 
-                : asset.price.toFixed(2);
-
-            // 3. Build HTML String
-            tickerHtml += `
-                <span class="${statusClass}">${asset.symbol} $${displayPrice}${direction}</span>
-                ${index < assets.length - 1 ? '<span class="ticker-sep">|</span>' : ''}
-            `;
-
-            // 4. Update state for next cycle comparison
+            const displayPrice = asset.price >= 1000 ? (asset.price / 1000).toFixed(1) + 'K' : asset.price.toFixed(2);
+            tickerHtml += `<span class="${statusClass}">${asset.symbol} $${displayPrice}${direction}</span>${index < assets.length - 1 ? '<span class="ticker-sep">|</span>' : ''}`;
             APP.state.lastPrices[asset.id] = asset.price;
         });
-
         $('ticker-crypto').innerHTML = tickerHtml;
-        
-    } catch(e) {
-        log('TICKER_FETCH_ERR');
-    }
+    } catch(e) { log('TICKER_FETCH_ERR'); }
 }
 
 function saveSession() {
-    localStorage.setItem('dris_v22', JSON.stringify({ 
-        theme: APP.state.theme, 
-        vj: APP.vj, 
-        bug: APP.bug 
-    }));
+    localStorage.setItem('dris_v22', JSON.stringify({ theme: APP.state.theme, vj: APP.vj, bug: APP.bug }));
     log('SESSION_SAVED');
 }
 
 function loadSession() {
     const rawData = localStorage.getItem('dris_v22');
     if (!rawData) return;
-
     try {
         const data = JSON.parse(rawData);
-        
-        // 1. Apply Logic Data
         if (data.theme) setTheme(data.theme);
         if (data.vj) Object.assign(APP.vj, data.vj);
         if (data.bug) Object.assign(APP.bug, data.bug);
-
-        // 2. Sync UI Sliders & Text
         const sliders = { 'sl-b': 'brightness', 'sl-c': 'contrast', 'sl-s': 'saturation' };
         Object.entries(sliders).forEach(([id, prop]) => {
             if ($(id)) {
@@ -1843,48 +1351,34 @@ function loadSession() {
                 $(`val-${id.split('-')[1]}`).textContent = Math.round(APP.vj[prop] * 100) + '%';
             }
         });
-        
         $('sl-h').value = APP.vj.hue;
         $('val-h').textContent = APP.vj.hue + '°';
-
-        // 3. Sync UI Buttons
         $('btn-trails')?.classList.toggle('on', APP.vj.trailsEnabled);
         $('btn-rgb')?.classList.toggle('on', APP.vj.rgbEnabled);
         $('btn-pixelate')?.classList.toggle('on', APP.vj.pixelateEnabled);
         $('btn-rumble')?.classList.toggle('on', APP.vj.rumbleEnabled);
         $('btn-ui-react')?.classList.toggle('on', APP.vj.uiReactivity);
-
         updateBug();
         log('SESSION_LOAD_OK');
-        triggerImpact(); // Visual confirmation
-    } catch (e) {
-        log('LOAD_ERR: DATA_CORRUPT');
-    }
+        triggerImpact(); 
+    } catch (e) { log('LOAD_ERR: DATA_CORRUPT'); }
 }
 
-// Add this so you can actually use the .vgd files you export
 function importVGD(input) {
     const file = input.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            // Save to localStorage so loadSession can pick it up
             localStorage.setItem('dris_v22', JSON.stringify(data));
             loadSession(); 
             log('VGD_DNA_INJECTED');
-        } catch (err) {
-            log('VGD_IMPORT_ERR');
-        }
+        } catch (err) { log('VGD_IMPORT_ERR'); }
     };
     reader.readAsText(file);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// VGD DNA SERIALIZATION (.vgd Session Export)
-// ═══════════════════════════════════════════════════════════════════════════
 function exportDNA() {
     const dna = {
         version: 'VNGRD_22.1',
@@ -1892,244 +1386,129 @@ function exportDNA() {
         theme: APP.state.theme,
         vj: { ...APP.vj },
         bug: { ...APP.bug },
-        media: APP.media.queue.map(item => ({
-            name: item.name,
-            type: item.type
-        })),
-        audio: {
-            spatialMode: APP.audio.spatialMode,
-            playlist: APP.audio.playlist.map(item => item.name || 'Unknown')
-        },
-        state: {
-            isCycle: APP.state.isCycle
-        }
+        media: APP.media.queue.map(item => ({ name: item.name, type: item.type })),
+        audio: { spatialMode: APP.audio.spatialMode, playlist: APP.audio.playlist.map(item => item.name || 'Unknown') },
+        state: { isCycle: APP.state.isCycle }
     };
-    
     const blob = new Blob([JSON.stringify(dna, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `SESSION_${Date.now()}.vgd`;
     a.click();
     URL.revokeObjectURL(a.href);
-    
     log('DNA_EXPORTED');
     return dna;
 }
 
-// Assign to APP.state for API access
 APP.state.exportDNA = exportDNA;
 
-// ═══════════════════════════════════════════════════════════════════════════
-// WEBRTC GUEST MODULE (PeerJS Bridge)
-// ═══════════════════════════════════════════════════════════════════════════
 function initGuest(peerId) {
-    if (!window.Peer) {
-        log('PEERJS_NOT_LOADED');
-        $('peer-id-display').value = 'PeerJS not loaded';
-        return;
-    }
-    
+    if (!window.Peer) { log('PEERJS_NOT_LOADED'); $('peer-id-display').value = 'PeerJS not loaded'; return; }
     APP.guest.peer = new Peer(peerId);
-    
     APP.guest.peer.on('open', id => {
         APP.guest.peerId = id;
         $('peer-id-display').value = id;
         $('guest-dot').classList.add('on');
         log(`GUEST_PEER_ID: ${id}`);
     });
-    
     APP.guest.peer.on('call', call => {
-        // Answer incoming call with empty stream (receive-only)
         call.answer();
-        
         call.on('stream', remoteStream => {
             APP.guest.stream = remoteStream;
             APP.guest.isActive = true;
-            
-            // Pipe remote audio into -18dB compressor chain
             if (APP.audio.ctx && APP.audio.compressor) {
                 APP.guest.audioSource = APP.audio.ctx.createMediaStreamSource(remoteStream);
                 APP.guest.audioSource.connect(APP.audio.compressor);
                 log('GUEST_AUDIO_LINKED_18dB');
             }
-            
             log('GUEST_STREAM_ACTIVE');
         });
-        
-        call.on('close', () => {
-            disconnectGuest();
-        });
+        call.on('close', () => { disconnectGuest(); });
     });
-    
-    APP.guest.peer.on('error', err => {
-        $('peer-id-display').value = 'Error: ' + err.type;
-        $('guest-dot').classList.remove('on');
-        log('GUEST_ERROR: ' + err.type);
-    });
+    APP.guest.peer.on('error', err => { $('peer-id-display').value = 'Error: ' + err.type; $('guest-dot').classList.remove('on'); log('GUEST_ERROR: ' + err.type); });
 }
 
 function connectToGuest(remotePeerId) {
-    if (!APP.guest.peer) {
-        log('INIT_PEER_FIRST');
-        return;
-    }
-    
-    // Request remote stream
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(localStream => {
-            const call = APP.guest.peer.call(remotePeerId, localStream);
-            
-            call.on('stream', remoteStream => {
-                APP.guest.stream = remoteStream;
-                APP.guest.isActive = true;
-                
-                // Pipe remote audio into -18dB compressor chain
-                if (APP.audio.ctx && APP.audio.compressor) {
-                    APP.guest.audioSource = APP.audio.ctx.createMediaStreamSource(remoteStream);
-                    APP.guest.audioSource.connect(APP.audio.compressor);
-                    log('GUEST_AUDIO_LINKED_18dB');
-                }
-                
-                log('GUEST_CONNECTED');
-            });
-        })
-        .catch(err => log('GUEST_MEDIA_ERR'));
+    if (!APP.guest.peer) { log('INIT_PEER_FIRST'); return; }
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(localStream => {
+        const call = APP.guest.peer.call(remotePeerId, localStream);
+        call.on('stream', remoteStream => {
+            APP.guest.stream = remoteStream;
+            APP.guest.isActive = true;
+            if (APP.audio.ctx && APP.audio.compressor) {
+                APP.guest.audioSource = APP.audio.ctx.createMediaStreamSource(remoteStream);
+                APP.guest.audioSource.connect(APP.audio.compressor);
+                log('GUEST_AUDIO_LINKED_18dB');
+            }
+            log('GUEST_CONNECTED');
+        });
+    }).catch(err => log('GUEST_MEDIA_ERR'));
 }
 
 function disconnectGuest() {
-    if (APP.guest.stream) {
-        APP.guest.stream.getTracks().forEach(t => t.stop());
-        APP.guest.stream = null;
-    }
-    if (APP.guest.videoElement) {
-        APP.guest.videoElement.srcObject = null;
-        APP.guest.videoElement = null;
-    }
-    if (APP.guest.audioSource) {
-        APP.guest.audioSource.disconnect();
-        APP.guest.audioSource = null;
-    }
-    if (APP.guest.connection) {
-        APP.guest.connection.close();
-        APP.guest.connection = null;
-    }
+    if (APP.guest.stream) { APP.guest.stream.getTracks().forEach(t => t.stop()); APP.guest.stream = null; }
+    if (APP.guest.videoElement) { APP.guest.videoElement.srcObject = null; APP.guest.videoElement = null; }
+    if (APP.guest.audioSource) { APP.guest.audioSource.disconnect(); APP.guest.audioSource = null; }
+    if (APP.guest.connection) { APP.guest.connection.close(); APP.guest.connection = null; }
     APP.guest.isActive = false;
     log('GUEST_DISCONNECTED');
 }
 
-// Assign to APP.guest for API access
 APP.guest.init = initGuest;
 APP.guest.connect = connectToGuest;
 APP.guest.disconnect = disconnectGuest;
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SOVEREIGN SECURITY (The Wipe)
-// ═══════════════════════════════════════════════════════════════════════════
 function sovereignPurge() {
-    // 1. Revoke all media URLs
     APP.media.queue.forEach(item => {
         if (item.url) URL.revokeObjectURL(item.url);
-        if (item.element?.tagName === 'VIDEO') {
-            item.element.pause();
-            item.element.src = '';
-            item.element.remove();
-        }
+        if (item.element?.tagName === 'VIDEO') { item.element.pause(); item.element.src = ''; item.element.remove(); }
     });
     APP.media.queue = [];
     APP.media.currentIndex = -1;
     APP.media.currentElement = null;
-    
-    // 2. Revoke audio playlist URLs
-    APP.audio.playlist.forEach(item => {
-        if (item.url) URL.revokeObjectURL(item.url);
-    });
+    APP.audio.playlist.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
     APP.audio.playlist = [];
-    if (APP.audio.element) {
-        APP.audio.element.pause();
-        APP.audio.element.src = '';
-    }
-    
-    // 3. Stop guest stream
+    if (APP.audio.element) { APP.audio.element.pause(); APP.audio.element.src = ''; }
     disconnectGuest();
-    if (APP.guest.peer) {
-        APP.guest.peer.destroy();
-        APP.guest.peer = null;
-    }
-    
-    // 4. Stop camera
-    if (APP.camera.stream) {
-        APP.camera.stream.getTracks().forEach(t => t.stop());
-        APP.camera.stream = null;
-    }
-    
-    // 5. Stop time machine
-    if (APP.timeMachine.recorder && APP.timeMachine.isRecording) {
-        APP.timeMachine.recorder.stop();
-        APP.timeMachine.isRecording = false;
-    }
+    if (APP.guest.peer) { APP.guest.peer.destroy(); APP.guest.peer = null; }
+    if (APP.camera.stream) { APP.camera.stream.getTracks().forEach(t => t.stop()); APP.camera.stream = null; }
+    if (APP.timeMachine.recorder && APP.timeMachine.isRecording) { APP.timeMachine.recorder.stop(); APP.timeMachine.isRecording = false; }
     APP.timeMachine.chunks = [];
-    
-    // 6. Delete IndexedDB databases
-    if (indexedDB.databases) {
-        indexedDB.databases().then(dbs => {
-            dbs.forEach(db => indexedDB.deleteDatabase(db.name));
-        });
-    }
-    
-    // 7. Clear localStorage
+    if (indexedDB.databases) { indexedDB.databases().then(dbs => { dbs.forEach(db => indexedDB.deleteDatabase(db.name)); }); }
     localStorage.removeItem('dris_v22');
-    
-    // 8. Reset UI
     updateQueueDisplay();
     $('media-dot').classList.add('off');
     $('track-info').textContent = 'NO TRACK';
-    
-    // Visual confirmation
     sovereignStrobe();
     log('SOVEREIGN_PURGE_COMPLETE');
 }
 
-// Assign to APP.security
 APP.security.purge = sovereignPurge;
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HARDWARE LOCK (Sovereign App Behavior)
-// ═══════════════════════════════════════════════════════════════════════════
 window.oncontextmenu = (e) => e.preventDefault();
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     log('DRIS//core_VNGRD_v22.1');
     log('HYBRID_BROADCAST_MONSTER');
-    
     checkMobile();
     initCanvas();
-    
     APP.render.lastFpsUpdate = performance.now();
     requestAnimationFrame(renderLoop);
-    
     updateClock();
     setInterval(updateClock, 1000);
     morphLogo();
     updateBug();
     
-    // Logo click
     $('main-logo').onclick = () => {
-        // ALWAYS trigger shock flash on logo click
         document.body.classList.remove('logo-flash');
-        void document.body.offsetWidth; // Force reflow for rapid clicks
+        void document.body.offsetWidth; 
         document.body.classList.add('logo-flash');
         setTimeout(() => document.body.classList.remove('logo-flash'), 400);
-        
-        // Cycle logo morph style
         const logo = $('main-logo');
         APP.ui.morphs.forEach(m => logo.classList.remove(m));
         logo.classList.add(APP.ui.morphs[Math.floor(Math.random() * APP.ui.morphs.length)]);
     };
     
-    // Camera
     $('btn-init-cam').onclick = initCamera;
     $('btn-go-live').onclick = goLive;
     $('btn-end').onclick = endLive;
@@ -2138,19 +1517,16 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-clip').onclick = clip10s;
     $('btn-kill').onclick = killCamera;
     
-    // Media
     $('btn-media').onclick = () => $('file-media').click();
     $('file-media').onchange = e => loadMediaFiles(e.target);
     $('btn-rotate').onclick = rotateMedia;
     $('btn-prev').onclick = previousMedia;
     $('btn-cycle').onclick = toggleCycle;
     
-    // Command Center
     $('btn-eject').onclick = ejectCurrent;
     $('btn-master-reset').onclick = masterReset;
     $('btn-purge').onclick = () => { if (confirm('PURGE ALL media and audio?')) purgeAll(); };
     
-    // Lower Thirds
     $('btn-lt-guest').onclick = () => showLowerThird('guest');
     $('btn-lt-track').onclick = () => showLowerThird('track');
     $('btn-lt-breaking').onclick = () => showLowerThird('breaking');
@@ -2158,20 +1534,14 @@ document.addEventListener('DOMContentLoaded', () => {
     $('lt-title').oninput = e => { if (APP.lowerThird.visible) $('lt-title-text').textContent = e.target.value; };
     $('lt-sub').oninput = e => { if (APP.lowerThird.visible) $('lt-subtitle-text').textContent = e.target.value; };
     
-    // Station Bug
     $('btn-upload-logo').onclick = () => $('file-logo').click();
-    // Master Clear for Station Bug
-    // MASTER CLEAR FOR STATION BUG
     $('btn-clear-logo').onclick = () => { 
         APP.bug.image = null; 
         APP.bug.text = 'DRIS//core'; 
         $('bug-text').value = 'DRIS//core';
-        
-        // Force it to be visible so you see the reset happen
         APP.bug.visible = true;
         $('station-bug').classList.remove('hidden');
         $('btn-bug-toggle').classList.add('on');
-        
         updateBug(); 
         saveSession(); 
         log('BUG_FACTORY_RESET'); 
@@ -2180,14 +1550,12 @@ document.addEventListener('DOMContentLoaded', () => {
     $('bug-text').oninput = e => { APP.bug.text = e.target.value; APP.bug.image = null; updateBug(); };
     $('btn-bug-toggle').onclick = toggleBug;
     
-    // Station bug drag
     $('station-bug').addEventListener('mousedown', e => {
         bugDragging = true;
         bugOffsetX = e.offsetX;
         bugOffsetY = e.offsetY;
         $('station-bug').style.cursor = 'grabbing';
     });
-    
     document.addEventListener('mousemove', e => {
         if (!bugDragging) return;
         const stage = $('stage').getBoundingClientRect();
@@ -2196,7 +1564,6 @@ document.addEventListener('DOMContentLoaded', () => {
         $('station-bug').style.left = Math.max(0, x) + 'px';
         $('station-bug').style.top = Math.max(0, y) + 'px';
     });
-    
     document.addEventListener('mouseup', () => {
         if (bugDragging) {
             bugDragging = false;
@@ -2204,26 +1571,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Audio
     $('btn-audio').onclick = () => { $('file-audio').click(); };
     $('file-audio').onchange = e => loadAudioFiles(e.target);
     $('btn-next-track').onclick = playTrack;
     $('btn-stop').onclick = stopAudio;
     
-    // Impact FX
     $('btn-stutter').onclick = impactStutter;
     $('btn-invert').onclick = impactInvert;
     $('btn-crush').onclick = impactCrush;
     $('btn-rumble').onclick = () => { APP.vj.rumbleEnabled = !APP.vj.rumbleEnabled; $('btn-rumble').classList.toggle('on'); log('SEISMIC_' + (APP.vj.rumbleEnabled ? 'ON' : 'OFF')); };
-    $('btn-ui-react').onclick = () => {       APP.vj.uiReactivity = !APP.vj.uiReactivity;       $('btn-ui-react').classList.toggle('on');            // IF TURNING ON: Give it a kickstart so you see it work immediately     if (APP.vj.uiReactivity) {          cyclePartyThemes();           triggerImpact(); // Add a visual flash so you know it's alive      }           log('PARTY_MODE_' + (APP.vj.uiReactivity ? 'ON' : 'OFF'));  };
     
-    // VJ sliders
+    $('btn-ui-react').onclick = () => {
+        APP.vj.uiReactivity = !APP.vj.uiReactivity;
+        $('btn-ui-react').classList.toggle('on');
+        if (APP.vj.uiReactivity) {
+            cyclePartyThemes();
+            triggerImpact();
+        }
+        log('PARTY_MODE_' + (APP.vj.uiReactivity ? 'ON' : 'OFF'));
+    };
+    
     $('sl-b').oninput = e => { APP.vj.brightness = e.target.value / 100; $('val-b').textContent = e.target.value + '%'; };
     $('sl-c').oninput = e => { APP.vj.contrast = e.target.value / 100; $('val-c').textContent = e.target.value + '%'; };
     $('sl-s').oninput = e => { APP.vj.saturation = e.target.value / 100; $('val-s').textContent = e.target.value + '%'; };
     $('sl-h').oninput = e => { APP.vj.hue = parseInt(e.target.value); $('val-h').textContent = e.target.value + '°'; };
     
-    // Canvas FX
     $('btn-trails').onclick = () => { APP.vj.trailsEnabled = !APP.vj.trailsEnabled; $('btn-trails').classList.toggle('on'); };
     $('btn-rgb').onclick = () => { APP.vj.rgbEnabled = !APP.vj.rgbEnabled; $('btn-rgb').classList.toggle('on'); };
     $('btn-pixelate').onclick = () => { APP.vj.pixelateEnabled = !APP.vj.pixelateEnabled; $('btn-pixelate').classList.toggle('on'); };
@@ -2232,41 +1604,26 @@ document.addEventListener('DOMContentLoaded', () => {
     $('sl-rgb').oninput = e => { APP.vj.rgbIntensity = parseInt(e.target.value); $('val-rgb').textContent = e.target.value; };
     $('sl-pix').oninput = e => { APP.vj.pixelSize = parseInt(e.target.value); $('val-pix').textContent = e.target.value; };
     
-    // Overlays
     $('btn-vhs').onclick = toggleVHS;
     $('btn-crt').onclick = toggleCRT;
     $('btn-reset').onclick = masterReset;
     $('btn-fs').onclick = toggleFullscreen;
     
-    // Theme
     document.querySelectorAll('.pal').forEach(p => p.onclick = () => setTheme(p.dataset.t));
     
-    // --- STEP 1: SESSION WIRING (CLEANED) ---
     $('btn-save').onclick = saveSession;
     
-    // Create the hidden VGD file input
     const vgdInput = document.createElement('input');
-    vgdInput.type = 'file';
-    vgdInput.accept = '.vgd';
-    vgdInput.style.display = 'none';
+    vgdInput.type = 'file'; vgdInput.accept = '.vgd'; vgdInput.style.display = 'none';
     vgdInput.onchange = e => importVGD(e.target);
     document.body.appendChild(vgdInput);
-
-    // LEFT CLICK: Open File Browser (Sovereign Portability)
     $('btn-load').onclick = () => vgdInput.click(); 
-    
-    // RIGHT CLICK: Load from Browser Memory (Internal Persistence)
-    $('btn-load').oncontextmenu = (e) => { 
-        e.preventDefault(); 
-        loadSession(); 
-    };
-
+    $('btn-load').oncontextmenu = (e) => { e.preventDefault(); loadSession(); };
     $('btn-export-dna').onclick = exportDNA;
     $('btn-projector').onclick = openProjector;
     $('btn-capture30').onclick = capture30s;
     $('btn-enter-vr').onclick = enterVR;
     
-    // P2P Guest Module Bindings
     $('btn-init-peer').onclick = () => {
         const peerId = 'DRIS_' + Math.random().toString(36).substr(2, 8).toUpperCase();
         initGuest(peerId);
@@ -2293,7 +1650,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btn-dolby').onclick = () => setSpatialMode('dolby');
     $('audio-output').onchange = e => setAudioOutput(e.target.value);
     
-    // Keyboard
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT') return;
         switch (e.key) {
@@ -2317,15 +1673,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchCrypto, 60000);
     loadSession();
     
-    // Initialize XR (check for VR support)
-    // XR, Audio outputs, and TimeMachine init on-demand (no permission prompts at startup)
-    
     log('INIT_OK');
-    
-    // MATERIAL BLUR REVEAL
     const blurReveal = $('blur-reveal');
-    if (blurReveal) {
-        setTimeout(() => blurReveal.remove(), 600);
-    }
+    if (blurReveal) { setTimeout(() => blurReveal.remove(), 600); }
     log('SOVEREIGN_CORE_ONLINE');
 });
