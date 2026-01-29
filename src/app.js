@@ -1233,12 +1233,10 @@ function setSpatialMode(mode) {
     
     APP.audio.spatialMode = mode;
     
-    // Update button states
+    // Update UI states
     $('btn-stereo').classList.toggle('on', mode === 'stereo');
     $('btn-spatial').classList.toggle('on', mode === '3d');
     $('btn-dolby').classList.toggle('on', mode === 'dolby');
-    
-    const listener = APP.audio.ctx.listener;
     
     switch(mode) {
         case 'stereo':
@@ -1266,27 +1264,7 @@ function setSpatialMode(mode) {
                 APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
                 APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
             }
-            log('MODE: DOLBY_ATMOS_v22_LOCKED');
-            break;
-    }
-    }
-            
-        case 'dolby':
-            APP.audio.panner.panningModel = 'HRTF';
-            APP.audio.panner.distanceModel = 'linear';
-            
-            // AUTO-ENABLE: Critical for coordinate updates
-            APP.audio.spatialEnabled = true; 
-
-            // Shift position to 5m high and 2m back for overhead height
-            positionAudio(0, 5, -2); 
-            
-            if (APP.audio.compressor) {
-                // Tighten for high-density "broadcast glue" sound
-                APP.audio.compressor.threshold.setValueAtTime(-18, APP.audio.ctx.currentTime);
-                APP.audio.compressor.ratio.setValueAtTime(12, APP.audio.ctx.currentTime);
-            }
-            log('MODE: DOLBY_ATMOS_v22_LOCKED');
+            log('MODE: DOLBY_LOCKED');
             break;
     }
 }
