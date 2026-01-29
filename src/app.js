@@ -2001,7 +2001,11 @@ window.oncontextmenu = (e) => e.preventDefault();
 // ═══════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
+   IGNITION: DOM READY & SAFE HANDSHAKE
+   ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Core Engine Startup
     log('DRIS//core_VNGRD_v22.1');
     log('HYBRID_BROADCAST_MONSTER');
     
@@ -2011,248 +2015,66 @@ document.addEventListener('DOMContentLoaded', () => {
     APP.render.lastFpsUpdate = performance.now();
     requestAnimationFrame(renderLoop);
     
+    // 2. Systems Online
     updateClock();
     setInterval(updateClock, 1000);
     morphLogo();
     updateBug();
-    
-    // Logo click
-    $('main-logo').onclick = () => {
-        // ALWAYS trigger shock flash on logo click
-        document.body.classList.remove('logo-flash');
-        void document.body.offsetWidth; // Force reflow for rapid clicks
-        document.body.classList.add('logo-flash');
-        setTimeout(() => document.body.classList.remove('logo-flash'), 400);
-        
-        // Cycle logo morph style
-        const logo = $('main-logo');
-        APP.ui.morphs.forEach(m => logo.classList.remove(m));
-        logo.classList.add(APP.ui.morphs[Math.floor(Math.random() * APP.ui.morphs.length)]);
-    };
-    
-    // Camera
-    $('btn-init-cam').onclick = initCamera;
-    $('btn-go-live').onclick = goLive;
-    $('btn-end').onclick = endLive;
-    $('btn-rec').onclick = toggleRec;
-    $('btn-mic').onclick = toggleMic;
-    $('btn-clip').onclick = clip10s;
-    $('btn-kill').onclick = killCamera;
-    
-    // Media
-    $('btn-media').onclick = () => $('file-media').click();
-    $('file-media').onchange = e => loadMediaFiles(e.target);
-    $('btn-rotate').onclick = rotateMedia;
-    $('btn-prev').onclick = previousMedia;
-    $('btn-cycle').onclick = toggleCycle;
-    
-    // Command Center
-    $('btn-eject').onclick = ejectCurrent;
-    $('btn-master-reset').onclick = masterReset;
-    $('btn-purge').onclick = () => { if (confirm('PURGE ALL media and audio?')) purgeAll(); };
-    
-    // Lower Thirds
-    $('btn-lt-guest').onclick = () => showLowerThird('guest');
-    $('btn-lt-track').onclick = () => showLowerThird('track');
-    $('btn-lt-breaking').onclick = () => showLowerThird('breaking');
-    $('btn-lt-off').onclick = hideLowerThird;
-    $('lt-title').oninput = e => { if (APP.lowerThird.visible) $('lt-title-text').textContent = e.target.value; };
-    $('lt-sub').oninput = e => { if (APP.lowerThird.visible) $('lt-subtitle-text').textContent = e.target.value; };
-    
-    // Station Bug
-    $('btn-upload-logo').onclick = () => $('file-logo').click();
-    // Signature Style Selector: Changes the visual DNA of the branding
-    if ($('bug-style-select')) {
-        $('bug-style-select').onchange = (e) => {
-            APP.bug.style = e.target.value;
-            
-            // Execute the redraw engine
-            updateBug(); 
-            
-            // Log the tactical shift
-            log(`DNA_STYLE: ${e.target.value.toUpperCase()}`);
-        };
-    }
-    // Master Clear for Station Bug
-// MASTER CLEAR FOR STATION BUG
-    $('btn-clear-logo').onclick = () => { 
-        APP.bug.image = null; 
-        APP.bug.text = 'DRIS//core'; 
-        $('bug-text').value = 'DRIS//core';
-        
-        // Force it to be visible so you see the reset happen
-        APP.bug.visible = true;
-        $('station-bug').classList.remove('hidden');
-        $('btn-bug-toggle').classList.add('on');
-        
-        updateBug(); 
-        saveSession(); 
-        log('BUG_FACTORY_RESET'); 
-    };
-    $('file-logo').onchange = e => loadLogoFile(e.target);
-    $('bug-text').oninput = e => { APP.bug.text = e.target.value; APP.bug.image = null; updateBug(); };
-    $('btn-bug-toggle').onclick = toggleBug;
-    
-    // Station bug drag
-    $('station-bug').addEventListener('mousedown', e => {
-        bugDragging = true;
-        bugOffsetX = e.offsetX;
-        bugOffsetY = e.offsetY;
-        $('station-bug').style.cursor = 'grabbing';
-    });
-    
-    document.addEventListener('mousemove', e => {
-        if (!bugDragging) return;
-        const stage = $('stage').getBoundingClientRect();
-        const x = e.clientX - stage.left - bugOffsetX;
-        const y = e.clientY - stage.top - bugOffsetY;
-        $('station-bug').style.left = Math.max(0, x) + 'px';
-        $('station-bug').style.top = Math.max(0, y) + 'px';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        if (bugDragging) {
-            bugDragging = false;
-            $('station-bug').style.cursor = 'move';
-        }
-    });// BROADCAST WEAPON: Tactical Scaling (Hover + Scroll)
-    $('station-bug').addEventListener('wheel', (e) => {
-        if (bugDragging) return; // Don't scale while moving
-        
-        e.preventDefault();
-        // Tactical Increment: 0.05 per notch
-        const direction = e.deltaY > 0 ? -0.05 : 0.05;
-        
-        // Clamp: Min 40% size, Max 400% size
-        APP.bug.scale = Math.min(4, Math.max(0.4, (APP.bug.scale || 1) + direction));
-        
-        // Instant visual feedback
-        $('station-bug').style.transform = `scale(${APP.bug.scale})`;
-    }, { passive: false });
-    
-    // Audio
-    $('btn-audio').onclick = () => { $('file-audio').click(); };
-    $('file-audio').onchange = e => loadAudioFiles(e.target);
-    $('btn-next-track').onclick = playTrack;
-    $('btn-stop').onclick = stopAudio;
-    
-    // Impact FX
-    $('btn-stutter').onclick = impactStutter;
-    $('btn-invert').onclick = impactInvert;
-    $('btn-crush').onclick = impactCrush;
-    $('btn-rumble').onclick = () => { APP.vj.rumbleEnabled = !APP.vj.rumbleEnabled; $('btn-rumble').classList.toggle('on'); log('SEISMIC_' + (APP.vj.rumbleEnabled ? 'ON' : 'OFF')); };
-    $('btn-ui-react').onclick = () => { APP.vj.uiReactivity = !APP.vj.uiReactivity; $('btn-ui-react').classList.toggle('on'); log('PARTY_MODE_' + (APP.vj.uiReactivity ? 'ON' : 'OFF')); };
-    
-    // VJ sliders
-    $('sl-b').oninput = e => { APP.vj.brightness = e.target.value / 100; $('val-b').textContent = e.target.value + '%'; };
-    $('sl-c').oninput = e => { APP.vj.contrast = e.target.value / 100; $('val-c').textContent = e.target.value + '%'; };
-    $('sl-s').oninput = e => { APP.vj.saturation = e.target.value / 100; $('val-s').textContent = e.target.value + '%'; };
-    $('sl-h').oninput = e => { APP.vj.hue = parseInt(e.target.value); $('val-h').textContent = e.target.value + '°'; };
-    
-    // Canvas FX
-    $('btn-trails').onclick = () => { APP.vj.trailsEnabled = !APP.vj.trailsEnabled; $('btn-trails').classList.toggle('on'); };
-    $('btn-rgb').onclick = () => { APP.vj.rgbEnabled = !APP.vj.rgbEnabled; $('btn-rgb').classList.toggle('on'); };
-    $('btn-pixelate').onclick = () => { APP.vj.pixelateEnabled = !APP.vj.pixelateEnabled; $('btn-pixelate').classList.toggle('on'); };
-    $('btn-bass-link').onclick = () => { APP.vj.rgbBassLink = !APP.vj.rgbBassLink; $('btn-bass-link').classList.toggle('on'); };
-    $('sl-trail').oninput = e => { APP.vj.trailAlpha = parseInt(e.target.value) / 100; $('val-trail').textContent = (e.target.value / 100).toFixed(2); };
-    $('sl-rgb').oninput = e => { APP.vj.rgbIntensity = parseInt(e.target.value); $('val-rgb').textContent = e.target.value; };
-    $('sl-pix').oninput = e => { APP.vj.pixelSize = parseInt(e.target.value); $('val-pix').textContent = e.target.value; };
-    
-    // Overlays
-    $('btn-vhs').onclick = toggleVHS;
-    $('btn-crt').onclick = toggleCRT;
-    $('btn-reset').onclick = masterReset;
-    $('btn-fs').onclick = toggleFullscreen;
-    
-    // Theme
-    document.querySelectorAll('.pal').forEach(p => p.onclick = () => setTheme(p.dataset.t));
-    
-    // --- STEP 1: SESSION WIRING (CLEANED) ---
-    $('btn-save').onclick = saveSession;
-    
-    // Create the hidden VGD file input
-    const vgdInput = document.createElement('input');
-    vgdInput.type = 'file';
-    vgdInput.accept = '.vgd';
-    vgdInput.style.display = 'none';
-    vgdInput.onchange = e => importVGD(e.target);
-    document.body.appendChild(vgdInput);
+    APP.state.startTime = Date.now();
 
-    // LEFT CLICK: Open File Browser (Sovereign Portability)
-    $('btn-load').onclick = () => vgdInput.click(); 
-    
-    // RIGHT CLICK: Load from Browser Memory (Internal Persistence)
-    $('btn-load').oncontextmenu = (e) => { 
-        e.preventDefault(); 
-        loadSession(); 
+    // 3. SAFE ACTION MAP (Connects JS to HTML IDs)
+    const ACTION_MAP = {
+        'main-logo': () => { 
+            morphLogo(); 
+            document.body.classList.add('logo-flash'); 
+            setTimeout(() => document.body.classList.remove('logo-flash'), 400); 
+        },
+        'btn-init-cam': initCamera,
+        'btn-go-live': goLive,
+        'btn-end': endLive,
+        'btn-rec': toggleRecording,
+        'btn-kill': killCamera,
+        'btn-media': () => $('file-media').click(),
+        'btn-audio': () => $('file-audio').click(),
+        'btn-rotate': rotateMedia,
+        'btn-prev': () => { 
+            APP.state.queueIndex = (APP.state.queueIndex - 1 + APP.queue.length) % APP.queue.length; 
+            renderCurrent(); 
+        },
+        'btn-ui-react': (e) => { 
+            APP.state.uiReact = !APP.state.uiReact; 
+            e.target.classList.toggle('on', APP.state.uiReact); 
+        },
+        'btn-rumble': (e) => { 
+            APP.state.rumbleMode = !APP.state.rumbleMode; 
+            e.target.classList.toggle('on', APP.state.rumbleMode); 
+        },
+        'btn-master-reset': resetEngine,
+        'btn-purge': () => { if(confirm('PURGE ALL MEDIA?')) { APP.queue = []; updateQueue(); } },
+        'btn-fs': toggleFullscreen,
+        'btn-lt-guest': () => updateLowerThird('guest'),
+        'btn-lt-track': () => updateLowerThird('track'),
+        'btn-lt-breaking': () => updateLowerThird('breaking'),
+        'btn-lt-off': () => updateLowerThird('off'),
+        'btn-bug-toggle': toggleBug
     };
 
-    $('btn-export-dna').onclick = exportDNA;
-    $('btn-projector').onclick = openProjector;
-    $('btn-capture30').onclick = capture30s;
-    $('btn-enter-vr').onclick = enterVR;
-    
-    // P2P Guest Module Bindings
-    $('btn-init-peer').onclick = () => {
-        const peerId = 'DRIS_' + Math.random().toString(36).substr(2, 8).toUpperCase();
-        initGuest(peerId);
-        $('peer-id-display').value = 'Connecting...';
-    };
-    
-    $('btn-connect-guest').onclick = () => {
-        const remoteId = $('remote-peer-id').value.trim();
-        if (remoteId) {
-            APP.guest.connect(remoteId);
-            $('guest-dot').classList.add('on');
+    // 4. Execution: Attach listeners ONLY if the ID exists in HTML
+    Object.entries(ACTION_MAP).forEach(([id, action]) => {
+        const el = $(id);
+        if (el) {
+            el.onclick = action;
         } else {
-            log('ENTER_REMOTE_ID');
-        }
-    };
-    
-    $('btn-disconnect-guest').onclick = () => {
-        disconnectGuest();
-        $('guest-dot').classList.remove('on');
-        $('peer-id-display').value = '';
-    };
-    $('btn-stereo').onclick = () => setSpatialMode('stereo');
-    $('btn-spatial').onclick = () => setSpatialMode('3d');
-    $('btn-dolby').onclick = () => setSpatialMode('dolby');
-    $('audio-output').onchange = e => setAudioOutput(e.target.value);
-    
-    // Keyboard
-    document.addEventListener('keydown', e => {
-        if (e.target.tagName === 'INPUT') return;
-        switch (e.key) {
-            case ' ': e.preventDefault(); rotateMedia(); break;
-            case 'Escape': masterReset(); break;
-            case 'h': case 'H': toggleFullscreen(); break;
-            case 'b': case 'B': toggleBug(); break;
-            case 'v': case 'V': toggleVHS(); break;
-            case 'c': case 'C': toggleCRT(); break;
-            case 't': case 'T': APP.vj.trailsEnabled = !APP.vj.trailsEnabled; $('btn-trails').classList.toggle('on'); break;
-            case 'r': case 'R': APP.vj.rgbEnabled = !APP.vj.rgbEnabled; $('btn-rgb').classList.toggle('on'); break;
-            case 'p': case 'P': previousMedia(); break;
-            case '1': impactStutter(); break;
-            case '2': impactInvert(); break;
-            case '3': impactCrush(); break;
+            console.warn(`[Handshake] Skipping missing ID: ${id}`);
         }
     });
+
+    // 5. File Inputs Handlers
+    const fileMedia = $('file-media');
+    if (fileMedia) fileMedia.onchange = (e) => handleFiles(e.target.files, 'media');
     
-    fetchCrypto();
-    setInterval(fetchCrypto, 60000);
-    loadSession();
-    
-    // Initialize XR (check for VR support)
-    // XR, Audio outputs, and TimeMachine init on-demand (no permission prompts at startup)
-    
-    log('INIT_OK');
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // MATERIAL BLUR REVEAL
-    // ═══════════════════════════════════════════════════════════════════════════
-    const blurReveal = $('blur-reveal');
-    if (blurReveal) {
-        setTimeout(() => blurReveal.remove(), 600);
-    }
-    log('SOVEREIGN_CORE_ONLINE');
+    const fileAudio = $('file-audio');
+    if (fileAudio) fileAudio.onchange = (e) => handleFiles(e.target.files, 'audio');
+
+    log('SYSTEM_READY');
 });
