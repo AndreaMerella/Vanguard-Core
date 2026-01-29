@@ -716,10 +716,9 @@ body.theme-green {
         /* ... existing mobile styles ... *//* --- SOVEREIGN MOBILE ADAPTATION --- */
 @media screen and (max-width: 950px) {
     /* Stack UI vertically on mobile */
-    #main-container {
-        flex-direction: column !important;
-        height: 100vh;
-    }
+    #console-wrapper {
+    flex-direction: column !important;
+}
 
     /* Step 1: Center the Stage */
     #stage {
@@ -805,14 +804,7 @@ body.theme-green {
 }
 
 /* Force standard height and font for all module buttons */
-.camera-box .btn, .media-box .btn {
-    font-family: 'JetBrains Mono', monospace !important; 
-    height: 42px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 10px;
-    margin-bottom: 0 !important;
-}
+
 
 /* 1-2-1 Grid for Camera */
 .camera-box .btn-row {
@@ -892,7 +884,7 @@ body.theme-green {
 </head>
 <body>
     <div id="console-wrapper">
-    <svg style="position:absolute;width:0;height:0;"> ... </svg>
+   
     <!-- SVG Filter: Chromatic Ghost (GPU-accelerated RGB split) -->
     <svg style="position:absolute;width:0;height:0;">
         <defs>
@@ -1210,11 +1202,14 @@ body.theme-green {
     </aside>
 
     <!-- BOTTOM BAR -->
-    <footer id="bottom-bar">
+   <footer id="bottom-bar">
         <div id="ticker-wrap">
             <div id="ticker-label">SYS</div>
             <div id="ticker-scroll">
-                <div id="ticker-text">DRIS//core VNGRD v22.1 // HYBRID BROADCAST // [H] FULLSCREEN [SPACE] NEXT [B] BUG [ESC] RESET // IMPACT FX: STUTTER • INVERT • CRUSH // <span id="ticker-crypto">BTC $--- | ETH $--- | SOL $---</span></div>
+                <div id="ticker-text">
+                    DRIS//core VNGRD v22.1 // HYBRID BROADCAST // 
+                    <span id="ticker-crypto">BTC $--- | ETH $--- | SOL $---</span>
+                </div>
             </div>
         </div>
         <div id="info-bar">
@@ -1228,8 +1223,6 @@ body.theme-green {
             </div>
         </div>
     </footer>
-
-    <!-- SYS LOG -->
     <div id="sys-log"></div>
 
     <!-- HIDDEN -->
