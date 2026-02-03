@@ -5079,26 +5079,21 @@ function activateHeatHaze(active) {
     };
 
     // --- INDEPENDENT LOGO DRAG INITIALIZATION ---
-    // This targets the three specific layers you want to move
     const logoLayers = ['widget-layer', 'user-logo-layer', 'station-bug'];
 
     logoLayers.forEach(id => {
         const el = $(id);
         if (el) {
-            // Ensure the element is visible and interactive
             el.style.pointerEvents = 'auto'; 
-            // Apply the smooth GPU dragging logic
-            makeDraggable(el);
+            // Ensure makeDraggable is defined in your core-v34 logic
+            if (typeof makeDraggable === 'function') makeDraggable(el);
         }
     });
 
-    // KEEP THIS: Initialize geo ticker injection
-    setTimeout(injectGeoToTicker, 3000);
-    
-    // Initialize geo ticker injection
+    // Initialize geo ticker injection after 3s to allow satellite handshake
     setTimeout(injectGeoToTicker, 3000);
 
-}); // THIS IS THE END of the startup block. Do not put code after this line.
+}); // <--- THIS WAS MISSING OR MISPLACED
 </script>
 <script type="module">
     import * as THREE from 'three';
