@@ -839,13 +839,13 @@
 }
 /* MOBILE ORIENTATION OVERLAY */
 #orientation-warning {
-    display: none; /* Hidden on Desktop */
+    display: none;
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background: #000000 !important; /* Force Black Background */
-    color: #00ffcc !important;    /* Force Neon Accent Text */
-    z-index: 9999999 !important;  /* Higher than everything else */
+    background: #000000 !important; 
+    color: #00ffcc !important;    
+    z-index: 9999999 !important;  
     flex-direction: column;
     justify-content: center;
     align-items: center;
@@ -856,12 +856,8 @@
 #orientation-warning .rotate-icon {
     font-size: 60px;
     margin-bottom: 20px;
-    color: #ff0055 !important; /* Pink icon for high visibility */
+    color: #ff0055 !important; 
     animation: rotateAnim 2s infinite ease-in-out;
-}
-
-@media screen and (orientation: portrait) {
-    #orientation-warning { display: flex !important; }
 }
 
 @keyframes rotateAnim {
@@ -870,16 +866,17 @@
     100% { transform: rotate(0deg); }
 }
 
+/* This one rule handles the mobile trigger perfectly */
 @media screen and (orientation: portrait) {
-    #orientation-warning { display: flex; }
+    #orientation-warning { display: flex !important; }
 }</style>
 </head>
 <body oncontextmenu="return false;">
-    <div id="orientation-warning">
-        <div class="rotate-icon">🔄</div>
-        <div style="letter-spacing: 5px; font-weight: 900;">SYSTEM_CRITICAL</div>
-        <div style="font-size: 10px; margin-top: 10px; opacity: 0.7;">ROTATE_DEVICE_TO_LANDSCAPE_TO_SYNC_V34</div>
-    </div>
+   <div id="orientation-warning">
+    <div class="rotate-icon" style="color: #ff0055 !important;">🔄</div>
+    <div style="letter-spacing: 5px; font-weight: 900; color: #00ffcc !important;">SYSTEM_CRITICAL</div>
+    <div style="font-size: 10px; margin-top: 10px; opacity: 0.8; color: #00ffcc !important;">ROTATE_DEVICE_TO_LANDSCAPE_TO_SYNC_V34</div>
+</div>
     <!-- SHOOTING_OVERLAY -->
     <div id="shooting-overlay"></div>
     
