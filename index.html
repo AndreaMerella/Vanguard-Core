@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">    
    <title>DRIS//CORE VNGRD V34 ULTRA // WEATHER_REACTIVE_ENGINE</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
@@ -15,8 +14,8 @@
     }
 }
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js" type="module"></script>
+<script src="https://unpkg.com/three@0.160.0/examples/jsm/loaders/STLLoader.js" type="module"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=JetBrains+Mono:wght@300;400;500&family=Bebas+Neue&family=Russo+One&display=swap');
         
@@ -72,17 +71,18 @@
         /* Hide Scrollbars Globally */
         ::-webkit-scrollbar { display: none; }
         html, body { 
-            scrollbar-width: none; 
-            -ms-overflow-style: none; 
-            overflow: hidden; 
-            height: 100vh; width: 100vw; 
-            background: var(--bg); color: var(--text); 
-            font-family: 'JetBrains Mono', monospace; 
-            font-size: 12px; 
-            overscroll-behavior: none; 
-            touch-action: none; 
-            transition: background 0.1s linear; 
-        }
+    scrollbar-width: none; 
+    -ms-overflow-style: none; 
+    overflow: hidden; 
+    height: 100%; /* Change from 100vh to 100% */
+    width: 100%;  /* Change from 100vw to 100% */
+    background: var(--bg); color: var(--text); 
+    font-family: 'JetBrains Mono', monospace; 
+    font-size: 12px; 
+    overscroll-behavior: none; 
+    touch-action: none; 
+    transition: background 0.1s linear; 
+}
 
         input, textarea { 
             user-select: text; 
@@ -822,16 +822,31 @@
         }
         body.seismic-active { animation: seismic-shake 0.08s infinite; }
         
-    /* ========================================
-       MASTER MOBILE CALIBRATION (V34 ULTRA)
-       ======================================== */
+   /* ========================================
+   MASTER MOBILE CALIBRATION (V34 ULTRA)
+   ======================================== */
 
-    /* 1. PORTRAIT GUARD - SHOWS ONLY ON VERTICAL PHONES */
-    @media screen and (orientation: portrait) {
-        #orientation-warning { 
-            display: flex !important; 
-        }
+/* 1. PORTRAIT GUARD - SHOWS ONLY ON VERTICAL PHONES */
+@media screen and (orientation: portrait) {
+    #orientation-warning { 
+        display: flex !important; 
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #000;
+        text-align: center;
     }
+}
+
+/* 2. LANDSCAPE AUTO-SYNC - HIDES WARNING WHEN ROTATED */
+@media screen and (orientation: landscape) {
+    #orientation-warning {
+        display: none !important;
+    }
+}
 
     /* 2. LANDSCAPE ENGINE - FIXES THE "SUCK" FROM YOUR SCREENSHOT */
     @media screen and (max-width: 950px) {
@@ -877,13 +892,27 @@
             display: none !important;
         }
     }
+        @media screen and (max-width: 950px) {
+    /* ... your existing mobile code ... */
+
+    #stage {
+        left: 0 !important;   /* Stretches the 3D view to the edges */
+        right: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        border: none !important;
+    }
+}
 </style>
 </head>
 <body oncontextmenu="return false;">
-   <div id="orientation-warning">
-    <div class="rotate-icon" style="color: #ff0055 !important;">🔄</div>
-    <div style="letter-spacing: 5px; font-weight: 900; color: #00ffcc !important;">SYSTEM_CRITICAL</div>
-    <div style="font-size: 10px; margin-top: 10px; opacity: 0.8; color: #00ffcc !important;">ROTATE_DEVICE_TO_LANDSCAPE_TO_SYNC_V34</div>
+ <div id="orientation-warning">
+    <div style="letter-spacing: 5px; font-weight: 900; color: #00ffcc !important; text-transform: uppercase;">
+        Rotate Device
+    </div>
+    <div style="font-size: 10px; margin-top: 8px; opacity: 0.8; color: #00ffcc !important; letter-spacing: 2px;">
+        LANDSCAPE_MODE_REQUIRED_FOR_V34_SYNC
+    </div>
 </div>
     <!-- SHOOTING_OVERLAY -->
     <div id="shooting-overlay"></div>
@@ -1313,6 +1342,17 @@
 <script>
 const $ = id => document.getElementById(id);
 
+// --- VNGRD AUDIO ENGINE: PLAYLIST ---
+const playlist = ["track1.mp3", "track2.mp3", "track3.mp3"]; 
+let currentTrack = 0;
+const audioPlayer = new Audio(playlist[currentTrack]);
+
+audioPlayer.addEventListener('ended', () => {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    audioPlayer.src = playlist[currentTrack];
+    audioPlayer.play();
+    console.log("VNGRD_SYSTEM: Transitioning to next track...");
+});
 // --- BROADCAST SAFE DRAG MODULE ---
 function makeLogSafeDraggable(el) {
     let isDragging = false;
