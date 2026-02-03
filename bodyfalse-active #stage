@@ -797,9 +797,9 @@
             filter: blur(0.5px);
         }
         
-        bodyfalse-active #stage {
-            animation: heat-shimmer 0.15s infinite;
-        }
+        body.heat-active #stage {
+    animation: heat-shimmer 0.15s infinite;
+}
         @keyframes heat-shimmer {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(1px); }
@@ -822,95 +822,62 @@
         }
         body.seismic-active { animation: seismic-shake 0.08s infinite; }
         
-    /* HORIZONTAL TV/MOBILE OVERRIDE */
-@media (orientation: landscape) and (max-width: 1024px) {
-    .sidebar, #top-bar, #bottom-bar, #sys-log { 
-        display: none !important; 
-    }
-    #stage {
-        position: fixed !important;
-        inset: 0 !important;
-        border: none !important;
-        z-index: 9999;
-    }
-    #overlay-layer {
-        padding: 5vh 5vw;
-    }
-}
-/* MOBILE ORIENTATION OVERLAY */
-#orientation-warning {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: #000000 !important; 
-    color: #00ffcc !important;    
-    z-index: 9999999 !important;  
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-family: 'Orbitron', sans-serif;
-}
+    /* ========================================
+       MASTER MOBILE CALIBRATION (V34 ULTRA)
+       ======================================== */
 
-#orientation-warning .rotate-icon {
-    font-size: 60px;
-    margin-bottom: 20px;
-    color: #ff0055 !important; 
-    animation: rotateAnim 2s infinite ease-in-out;
-}
-
-@keyframes rotateAnim {
-    0% { transform: rotate(0deg); }
-    50% { transform: rotate(-90deg); }
-    100% { transform: rotate(0deg); }
-}
-
-/* This one rule handles the mobile trigger perfectly */
-@media screen and (orientation: portrait) {
-    #orientation-warning { display: flex !important; }
-}/* V34 ULTRA MOBILE CALIBRATION */
-@media screen and (max-width: 850px) {
-    /* Prevent text clipping at the top */
-    body {
-        padding-top: 20px;
-        overflow: hidden;
+    /* 1. PORTRAIT GUARD - SHOWS ONLY ON VERTICAL PHONES */
+    @media screen and (orientation: portrait) {
+        #orientation-warning { 
+            display: flex !important; 
+        }
     }
 
-    /* Fix the Sidebar - Make it a transparent overlay on mobile */
-    .sidebar {
-        width: 100vw !important;
-        height: auto !important;
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        background: rgba(0,0,0,0.7) !important; /* See-through background */
-        backdrop-filter: blur(5px);
-        display: flex;
-        flex-direction: row !important; /* Stack horizontally */
-        flex-wrap: wrap;
-        padding: 10px !important;
-        z-index: 1000;
-        border-top: 1px solid #00ffcc;
-    }
+    /* 2. LANDSCAPE ENGINE - FIXES THE "SUCK" FROM YOUR SCREENSHOT */
+    @media screen and (max-width: 950px) {
+        /* Pushes Title out of the corner/notch */
+        .vngrd-title, h1 {
+            position: fixed !important;
+            top: 25px !important; 
+            left: 25px !important;
+            font-size: 20px !important;
+            z-index: 999999 !important;
+            letter-spacing: 4px !important;
+            margin: 0 !important;
+        }
 
-    /* Shrink the title so it fits the screen width */
-    h1, .vngrd-title {
-        font-size: 18px !important;
-        margin-left: 10px !important;
-        letter-spacing: 2px !important;
-    }
+        /* Forces the 3D Engine/Liquid to fill the whole screen */
+        #trasudate-layer, #trasudate-canvas, canvas, #stage {
+            width: 100vw !important;
+            height: 100vh !important;
+            position: fixed !important;
+            inset: 0 !important;
+            border: none !important;
+        }
 
-    /* Ensure the 3D Canvas stays behind the UI */
-    #trasudate-layer, #canvas-container {
-        position: fixed !important;
-        top: 0;
-        left: 0;
-        width: 100vw !important;
-        height: 100vh !important;
-        z-index: 1;
+        /* Docks the Sidebar at the bottom so it doesn't squash the view */
+        .sidebar, #left-panel {
+            width: 100vw !important;
+            height: 70px !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(10px) !important;
+            border-right: none !important;
+            border-top: 1px solid var(--accent) !important;
+            z-index: 1000 !important;
+            padding: 0 10px !important;
+        }
+
+        /* Hide desktop-specific clutter */
+        #top-bar, #sys-log, .desktop-only {
+            display: none !important;
+        }
     }
-}</style>
+</style>
 </head>
 <body oncontextmenu="return false;">
    <div id="orientation-warning">
@@ -4015,24 +3982,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // GEO_HANDSHAKE + OPEN-METEO API + REFRACTIVE RAIN
     // ========================================
     
-    // Initialize atmosphere canvas and refraction buffer
-    function initAtmosphereCanvas() {
-        APP.atmosphere.canvas = $('atmos-canvas');
-        APP.atmosphere.refractionCanvas = $('refraction-buffer');
-        
-        if (APP.atmosphere.canvas) {
-            APP.atmosphere.ctx = APP.atmosphere.canvas.getContext('2d');
-            const stage = $('stage');
-            APP.atmosphere.canvas.width = stage.clientWidth;
-            APP.atmosphere.canvas.height = stage.clientHeight;
-        }
-        
-        if (APP.atmosphere.refractionCanvas) {
-            APP.atmosphere.refractionCtx = APP.atmosphere.refractionCanvas.getContext('2d');
-            APP.atmosphere.refractionCanvas.width = APP.render.canvas.width;
-            APP.atmosphere.refractionCanvas.height = APP.render.canvas.height;
-        }
+function initAtmosphereCanvas() {
+    APP.atmosphere.canvas = $('atmos-canvas');
+    APP.atmosphere.refractionCanvas = $('refraction-buffer');
+    
+    // Initial size variables
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    
+    if (APP.atmosphere.canvas) {
+        APP.atmosphere.ctx = APP.atmosphere.canvas.getContext('2d');
+        APP.atmosphere.canvas.width = w;
+        APP.atmosphere.canvas.height = h;
     }
+    
+    if (APP.atmosphere.refractionCanvas) {
+        APP.atmosphere.refractionCtx = APP.atmosphere.refractionCanvas.getContext('2d');
+        APP.atmosphere.refractionCanvas.width = w;
+        APP.atmosphere.refractionCanvas.height = h;
+    }
+
+    // THE MASTER RESIZE LISTENER (Handles both layers)
+    window.addEventListener('resize', () => {
+        const newW = window.innerWidth;
+        const newH = window.innerHeight;
+
+        if (APP.atmosphere.canvas) {
+            APP.atmosphere.canvas.width = newW;
+            APP.atmosphere.canvas.height = newH;
+        }
+
+        if (APP.atmosphere.refractionCanvas) {
+            APP.atmosphere.refractionCanvas.width = newW;
+            APP.atmosphere.refractionCanvas.height = newH;
+        }
+        
+        // Log to console for debugging mobile rotations
+        console.log(`V34_ENGINE: CALIBRATED_TO_${newW}x${newH}`);
+    });
+}
     
     // GEO_HANDSHAKE: Get real coordinates
     async function initAtmosphere() {
