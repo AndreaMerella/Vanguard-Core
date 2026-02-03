@@ -600,13 +600,22 @@
         .nft-bar { width: 200px; height: 4px; background: #333; margin-top: 10px; }
         .nft-fill { height: 100%; background: var(--r); transition: width 0.1s linear; }
 
-        .blur-reveal { position: fixed; inset: 0; backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); z-index: 99999; pointer-events: none; animation: material-reveal 0.5s ease forwards; }
-        @keyframes material-reveal { 0% { backdrop-filter: blur(50px); opacity: 1; } 100% { backdrop-filter: blur(0px); opacity: 0; } }
+        .blur-reveal { 
+    position: fixed; 
+    inset: 0; 
+    backdrop-filter: blur(50px); 
+    -webkit-backdrop-filter: blur(50px); 
+    background: #000; /* Keeps the screen dark during the blur */
+    z-index: 1000000; /* Pushed higher than everything else */
+    pointer-events: none; 
+    transition: backdrop-filter 2.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 3s ease; 
+}
 
-        input[type="file"] { display: none; }
-        body.vhs #stage::before { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px); animation: vhs-track 0.1s steps(3) infinite; opacity: 0.6; }
-        @keyframes vhs-track { 0% { background-position: 0 0; } 100% { background-position: 0 4px; } }
-        body.crt #stage::after { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%); }
+/* This is the state that triggers the reveal */
+.blur-reveal.active { 
+    backdrop-filter: blur(0px); 
+    opacity: 0; 
+}
         
         /* CONSOLE_HARDWARE BUTTON EFFECTS - HIGH-END GLOW AND PULSE */
         .btn {
@@ -1341,6 +1350,16 @@
 
 <script>
 const $ = id => document.getElementById(id);
+    window.addEventListener('load', () => {
+    const reveal = $('blur-reveal');
+    if (reveal) {
+        // Wait 1 second so the user feels the blur, then melt away
+        setTimeout(() => {
+            reveal.classList.add('active');
+            console.log("VNGRD_SYSTEM: Boot sequence normalized.");
+        }, 1000); 
+    }
+});
 
 // --- VNGRD AUDIO ENGINE: PLAYLIST ---
 const playlist = ["track1.mp3", "track2.mp3", "track3.mp3"]; 
