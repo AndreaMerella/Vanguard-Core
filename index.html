@@ -75,18 +75,36 @@
         
         /* Hide Scrollbars Globally */
         ::-webkit-scrollbar { display: none; }
-        html, body { 
-    scrollbar-width: none; 
-    -ms-overflow-style: none; 
-    overflow: hidden; 
-    height: 100%; /* Change from 100vh to 100% */
-    width: 100%;  /* Change from 100vw to 100% */
-    background: var(--bg); color: var(--text); 
-    font-family: 'JetBrains Mono', monospace; 
-    font-size: 12px; 
-    overscroll-behavior: none; 
-    touch-action: none; 
-    transition: background 0.1s linear; 
+       /* THE MOBILE FIX: PASTE THIS INSTEAD */
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+    
+    /* MOBILE VIEWPORT LOCK */
+    width: 100vw;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100); /* THE V34 FIX */
+    overflow: hidden;
+    position: fixed; 
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure the main canvases fill the new viewport */
+#stage, .vj-canvas, #atmos-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: calc(var(--vh, 1vh) * 100) !important;
+    object-fit: cover;
 }
         body::-webkit-scrollbar {
     display: none;
@@ -5350,40 +5368,39 @@ function activateHeatHaze(active) {
     } // Closes container check
 
     // --- V34 ULTRA MOBILE COLD BOOT ---
+    // --- V34 RECOVERY BOOT ---
     window.addEventListener('load', () => {
-        log('SYSTEM_BOOT: MOBILE_OPTIMIZED');
+        log('SYSTEM_BOOT: INIT');
 
-        // 1. FIX VIEWPORT (The "Everything is tiny/broken" fix)
-        const fixViewport = () => {
-            const vh = window.innerHeight * 0.01;
+        // 1. DYNAMIC VIEWPORT FIX (Fixes layout/scaling instantly)
+        const vhFix = () => {
+            let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
-            if (typeof syncMobileViewport === 'function') syncMobileViewport();
         };
-        fixViewport();
-        window.addEventListener('resize', fixViewport);
+        vhFix();
+        window.addEventListener('resize', vhFix);
 
-        // 2. WAKE UP AUDIO (Mobile blocks audio until a touch happens)
-        document.body.addEventListener('click', () => {
+        // 2. THE HARDWARE UNLOCK (CRITICAL)
+        // Mobile browsers freeze the script if AudioContext/Sensors aren't "touched"
+        const unlock = () => {
             if (APP.audio.ctx && APP.audio.ctx.state === 'suspended') {
-                APP.audio.ctx.resume().then(() => log('AUDIO_ENGINE: UNLOCKED'));
+                APP.audio.ctx.resume();
             }
-        }, { once: true });
-
-        // 3. GEO-SYNC DELAY (Prevents freezing during load)
-        setTimeout(() => {
+            
+            // Re-trigger the atmosphere and 3D sync once the user interacts
             if (typeof initAtmosphere === 'function') initAtmosphere();
-        }, 2000);
-
-        // 4. THE CAMERA "BLACK SCREEN" BYPASS
-        // Mobile requires explicit playsinline and muted for previews to show
-        const fixPreviews = () => {
-            document.querySelectorAll('video').forEach(v => {
-                v.setAttribute('playsinline', 'true');
-                v.setAttribute('webkit-playsinline', 'true');
-                v.muted = true; // MUST be muted on mobile to start
-            });
+            if (typeof syncMobileViewport === 'function') syncMobileViewport();
+            
+            log('HARDWARE_UNLOCKED');
+            document.removeEventListener('touchstart', unlock);
         };
-        fixPreviews();
+        document.addEventListener('touchstart', unlock);
+
+        // 3. FORCE SCALE SYNC
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            if (typeof syncMobileViewport === 'function') syncMobileViewport();
+        }, 500);
     });
 </script>
 </body>
