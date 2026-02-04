@@ -1483,50 +1483,73 @@
 
 <script>
 const $ = id => document.getElementById(id);
-// --- METAMASK FIX: AUTHENTICATION ENGINE ---
+// --- UNIFIED METAMASK ENGINE ---
 async function connectWallet() {
-    // Check if window.ethereum exists
-    if (!window.ethereum) {
-        alert("Wallet not found. Please install MetaMask.");
+    console.log("VNGRD_AUTH: Initializing...");
+    
+    if (typeof window.ethereum === 'undefined') {
+        alert("MetaMask not found! Please use a Web3 browser like Chrome with the MetaMask extension.");
         return;
     }
 
     try {
-        // If multiple wallets are installed, this helps pick MetaMask
+        // 1. Initialize provider with 'any' to handle extension conflicts
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         
-        // Request account access
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        // 2. Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
         
-        const signer = provider.getSigner();
-        const address = await signer.getAddress();
-
-        // Update UI
+        // 3. Update UI Badge (Neon Green Glow)
         const badge = document.getElementById('wallet-badge');
         if (badge) {
-            badge.innerHTML = `<span class="dot" style="background:var(--g)"></span> ${address.substring(0,6)}...${address.substring(38)}`;
+            badge.innerHTML = `<span class="dot" id="wallet-dot" style="background:var(--g);box-shadow:0 0 10px var(--g);"></span> ${address.substring(0,6)}...${address.substring(38)}`;
             badge.style.color = "var(--g)";
+            badge.style.borderColor = "var(--g)";
+        }
+
+        // 4. Save to global APP state
+        if (typeof APP !== 'undefined') {
+            APP.wallet.connected = true;
+            APP.wallet.address = address;
+        }
+
+        // 5. System Terminal Feedback
+        const logElement = document.getElementById('sys-log');
+        if (logElement) {
+            logElement.innerHTML += `<div class="log-line"><span class="ts">[${new Date().toLocaleTimeString()}]</span> L2_AUTH_SUCCESS: ${address}</div>`;
         }
         
         console.log("Wallet Linked:", address);
-        // Now trigger the scan
+        
+        // 6. Trigger Asset Scan
         scanWalletAssets(address);
 
     } catch (err) {
-        console.error("Connection failed:", err);
-        // This handles the 'Unexpected error' in your logs
+        console.error("AUTH_ERROR:", err);
         if (err.code === -32002) {
-            alert("Connection request already pending in MetaMask. Please open your extension.");
+            alert("Connection already pending! Please open your MetaMask extension manually to approve.");
         }
     }
 }
-// Function to handle the "Scan" logic for your NFT_VAULT
+
+// THE TRIGGER: This ensures the button works even after page loads
+window.addEventListener('load', () => {
+    const btn = document.getElementById('wallet-badge');
+    if (btn) {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            connectWallet();
+        };
+    }
+});
+
 function scanWalletAssets(address) {
-    console.log("VNGRD_SYSTEM: Scanning Vault for address", address);
-    const vaultDot = $('vault-dot');
+    console.log("VNGRD_SYSTEM: Scanning Vault...", address);
+    const vaultDot = document.getElementById('vault-dot');
     if (vaultDot) {
         vaultDot.classList.remove('off');
-        vaultDot.classList.add('gold'); // Turns yellow while scanning
+        vaultDot.style.background = 'var(--y)'; // Set to yellow/gold while scanning
     }
 }
 
