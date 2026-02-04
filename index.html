@@ -2409,17 +2409,139 @@ $('btn-inject').onclick = () => {
 
 function goLive() {
     if (!APP.camera.stream) return;
-    const overlay = $('countdown'); const num = $('countdown-num'); const btn = $('btn-go-live');
-    overlay.style.display = 'flex'; let count = 3; num.textContent = count; btn.textContent = `LIVE IN ${count}...`; 
+    
+    // START DUCKING IMMEDIATELY
+    duckAudio(true); 
+
+    const overlay = $('countdown'); 
+    const num = $('countdown-num'); 
+    const btn = $('btn-go-live');
+    
+    overlay.style.display = 'flex'; 
+    let count = 3; 
+    num.textContent = count; 
+    btn.textContent = `LIVE IN ${count}...`; 
+    
     const interval = setInterval(() => {
         count--;
-        if (count > 0) { num.textContent = count; btn.textContent = `LIVE IN ${count}...`; }
-        else { 
-            clearInterval(interval); overlay.style.display = 'none'; APP.state.isLive = true; APP.camera.mode = 'live'; 
-            $('cam-ctrls').style.display = 'none'; $('live-ctrls').style.display = 'block'; $('tally').style.display = 'block'; $('status-text').textContent = 'LIVE'; $('main-dot').classList.add('live'); 
-            document.querySelector('.preview-label').textContent = 'LIVE'; log('LIVE_PODCAST_MODE'); 
+        if (count > 0) { 
+            num.textContent = count; 
+            btn.textContent = `LIVE IN ${count}...`; 
+        } else { 
+            clearInterval(interval); 
+            overlay.style.display = 'none'; 
+            APP.state.isLive = true; 
+            APP.camera.mode = 'live'; 
+            
+            $('cam-ctrls').style.display = 'none'; 
+            $('live-ctrls').style.display = 'block'; 
+            $('tally').style.display = 'block'; 
+            $('status-text').textContent = 'LIVE'; 
+            $('main-dot').classList.add('live'); 
+            
+            document.querySelector('.preview-label').textContent = 'LIVE'; 
+            log('LIVE_PODCAST_MODE'); 
         }
     }, 1000);
+}
+
+// Keep this outside or inside, but it MUST be called above
+// 1. THE SHARED UTILITY (Place this in your main script area)
+// 1. DUCK AUDIO (KEEP THIS SEPARATE)
+function duckAudio(isLive) {
+    const audio = APP.audio.element;
+    if (!audio) return;
+
+    // CONFIG
+    const fadeDuration = 1200; // 1.2 seconds for a high-end cinematic feel
+    const frameRate = 30; // 30 updates per second for maximum smoothness
+    const totalSteps = (fadeDuration / 1000) * frameRate;
+    
+    const masterVol = ($('sl-vol')) ? $('sl-vol').value / 100 : 1.0;
+    const targetVol = isLive ? 0.15 : masterVol; // Dropped to 15% for better voice clarity
+    const startVol = audio.volume;
+
+    if (APP.audio.fadeInterval) clearInterval(APP.audio.fadeInterval);
+
+    let currentStep = 0;
+    log(isLive ? 'ESTABLISHING_VOICE_PRIORITY...' : 'RESTORING_MASTER_LEVEL...');
+
+    APP.audio.fadeInterval = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / totalSteps;
+        
+        // "Ease-In-Out" Power Curve (Logarithmic mimic)
+        // This makes the transition feel natural to the ear
+        const ease = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+        audio.volume = startVol + (targetVol - startVol) * ease;
+
+        if (currentStep >= totalSteps) {
+            audio.volume = targetVol;
+            clearInterval(APP.audio.fadeInterval);
+        }
+    }, 1000 / frameRate);
+}
+
+// 2. GO LIVE (THE TRIGGER)
+function goLive() {
+    // Check if camera is actually ready
+    if (!APP.camera.stream) {
+        log('ERR: CAMERA_NOT_READY');
+        return;
+    }
+    
+    // Start ducking immediately
+    duckAudio(true); 
+
+    const overlay = $('countdown'); 
+    const num = $('countdown-num'); 
+    const btn = $('btn-go-live');
+    
+    overlay.style.display = 'flex'; 
+    let count = 3; 
+    num.textContent = count; 
+    btn.textContent = `LIVE IN ${count}...`; 
+    
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) { 
+            num.textContent = count; 
+            btn.textContent = `LIVE IN ${count}...`; 
+        } else { 
+            clearInterval(interval); 
+            overlay.style.display = 'none'; 
+            APP.state.isLive = true; 
+            APP.camera.mode = 'live'; 
+            
+            $('cam-ctrls').style.display = 'none'; 
+            $('live-ctrls').style.display = 'block'; 
+            $('tally').style.display = 'block'; 
+            $('status-text').textContent = 'LIVE'; 
+            if($('main-dot')) $('main-dot').classList.add('live'); 
+            
+            log('LIVE_PODCAST_MODE'); 
+        }
+    }, 1000);
+}
+
+// 3. END LIVE (THE RESET)
+function endLive() { 
+    APP.state.isLive = false; 
+    APP.camera.mode = 'preview'; 
+    $('live-ctrls').style.display = 'none'; 
+    $('cam-ctrls').style.display = 'block'; 
+    $('tally').style.display = 'none'; 
+    $('status-text').textContent = 'STANDBY'; 
+    if($('main-dot')) $('main-dot').classList.remove('live'); 
+    $('btn-go-live').textContent = 'GO LIVE [3-2-1]'; 
+    
+    if($('rec-status')) $('rec-status').style.display = 'none';
+
+    duckAudio(false); // Restore music
+    log('END_LIVE: AUDIO_RESTORED');
 }
 
 $('btn-rec').onclick = () => {
@@ -2448,8 +2570,9 @@ function endLive() {
     APP.state.isLive = false; APP.camera.mode = 'preview'; $('live-ctrls').style.display = 'none'; $('cam-ctrls').style.display = 'block'; $('tally').style.display = 'none'; $('status-text').textContent = 'STANDBY'; $('main-dot').classList.remove('live'); $('btn-go-live').textContent = 'GO LIVE [3-2-1]'; 
     log('END_LIVE'); 
     $('rec-status').style.display = 'none';
+  duckAudio(false); // Restore music volume
+    log('END_LIVE: AUDIO_RESTORED');
 }
-
 function killCamera() { 
     if (APP.camera.stream) APP.camera.stream.getTracks().forEach(t => t.stop()); 
     if (APP.camera.videoEl) { APP.camera.videoEl.srcObject = null; APP.camera.videoEl = null; } 
@@ -4152,43 +4275,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================================
     
 function initAtmosphereCanvas() {
+    // 1. Setup Canvases
     APP.atmosphere.canvas = $('atmos-canvas');
     APP.atmosphere.refractionCanvas = $('refraction-buffer');
     
-    // Initial size variables
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    
-    if (APP.atmosphere.canvas) {
-        APP.atmosphere.ctx = APP.atmosphere.canvas.getContext('2d');
-        APP.atmosphere.canvas.width = w;
-        APP.atmosphere.canvas.height = h;
-    }
-    
-    if (APP.atmosphere.refractionCanvas) {
-        APP.atmosphere.refractionCtx = APP.atmosphere.refractionCanvas.getContext('2d');
-        APP.atmosphere.refractionCanvas.width = w;
-        APP.atmosphere.refractionCanvas.height = h;
-    }
-
-    // THE MASTER RESIZE LISTENER (Handles both layers)
-    window.addEventListener('resize', () => {
-        const newW = window.innerWidth;
-        const newH = window.innerHeight;
-
+    const setCanvasSize = () => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         if (APP.atmosphere.canvas) {
-            APP.atmosphere.canvas.width = newW;
-            APP.atmosphere.canvas.height = newH;
+            APP.atmosphere.canvas.width = w;
+            APP.atmosphere.canvas.height = h;
         }
-
         if (APP.atmosphere.refractionCanvas) {
-            APP.atmosphere.refractionCanvas.width = newW;
-            APP.atmosphere.refractionCanvas.height = newH;
+            APP.atmosphere.refractionCanvas.width = w;
+            APP.atmosphere.refractionCanvas.height = h;
         }
-        
-        // Log to console for debugging mobile rotations
-        console.log(`V34_ENGINE: CALIBRATED_TO_${newW}x${newH}`);
-    });
+        console.log(`V34_ENGINE: CALIBRATED_TO_${w}x${h}`);
+    };
+
+    setCanvasSize();
+    window.addEventListener('resize', setCanvasSize);
+
+    // 2. THE GEOLOCATION ENGINE
+    log('SYNCING_GEO_SENSORS...');
+    
+    const geoOptions = { timeout: 5000, enableHighAccuracy: false };
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                APP.atmosphere.lat = pos.coords.latitude;
+                APP.atmosphere.lon = pos.coords.longitude;
+                log(`GPS_LOCKED: ${APP.atmosphere.lat.toFixed(2)}`);
+                updateAtmosphereData(); // Trigger weather sync
+            },
+            () => {
+                log('GPS_BLOCKED: USING_IP_FALLBACK');
+                fallbackToIPGeo();
+            },
+            geoOptions
+        );
+    } else {
+        fallbackToIPGeo();
+    }
+}
+
+// 3. IP-BASED FALLBACK (Crucial for local files)
+async function fallbackToIPGeo() {
+    try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        if (data.latitude) {
+            APP.atmosphere.lat = data.latitude;
+            APP.atmosphere.lon = data.longitude;
+            APP.atmosphere.city = data.city;
+            log(`IP_GEO_LOCKED: ${data.city.toUpperCase()}`);
+            updateAtmosphereData();
+        }
+    } catch (e) {
+        log('GEO_OFFLINE');
+    }
 }
     
     // GEO_HANDSHAKE: Get real coordinates
@@ -5203,19 +5349,41 @@ function activateHeatHaze(active) {
         }; // Closes upload-trigger onclick
     } // Closes container check
 
-    // --- GLOBAL ENGINE START ---
+    // --- V34 ULTRA MOBILE COLD BOOT ---
     window.addEventListener('load', () => {
-        console.log("VNGRD_SYSTEM: ONLINE");
-        
-        // 1. Start the Location/Weather engine
-        if (typeof initAtmosphere === 'function') {
-            initAtmosphere();
-        }
-        
-        // 2. Lock the 3D grid to the phone/desktop dimensions
-        if (typeof syncMobileViewport === 'function') {
-            syncMobileViewport();
-        } 
+        log('SYSTEM_BOOT: MOBILE_OPTIMIZED');
+
+        // 1. FIX VIEWPORT (The "Everything is tiny/broken" fix)
+        const fixViewport = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            if (typeof syncMobileViewport === 'function') syncMobileViewport();
+        };
+        fixViewport();
+        window.addEventListener('resize', fixViewport);
+
+        // 2. WAKE UP AUDIO (Mobile blocks audio until a touch happens)
+        document.body.addEventListener('click', () => {
+            if (APP.audio.ctx && APP.audio.ctx.state === 'suspended') {
+                APP.audio.ctx.resume().then(() => log('AUDIO_ENGINE: UNLOCKED'));
+            }
+        }, { once: true });
+
+        // 3. GEO-SYNC DELAY (Prevents freezing during load)
+        setTimeout(() => {
+            if (typeof initAtmosphere === 'function') initAtmosphere();
+        }, 2000);
+
+        // 4. THE CAMERA "BLACK SCREEN" BYPASS
+        // Mobile requires explicit playsinline and muted for previews to show
+        const fixPreviews = () => {
+            document.querySelectorAll('video').forEach(v => {
+                v.setAttribute('playsinline', 'true');
+                v.setAttribute('webkit-playsinline', 'true');
+                v.muted = true; // MUST be muted on mobile to start
+            });
+        };
+        fixPreviews();
     });
 </script>
 </body>
