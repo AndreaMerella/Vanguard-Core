@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-   <title>DRIS//CORE VNGRD V34 ULTRA // WEATHER_REACTIVE_ENGINE</title>
+   <title>DRIS//CORE VNGRD</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
 <script type="importmap">
@@ -969,7 +969,7 @@
         <div id="glass-fracture-layer"></div>
         <div id="overlay-layer">
             <!-- V33 MANUAL LAYER SEPARATION -->
-            <div id="station-bug">VNGRD_V34</div>
+            <div id="station-bug">VNGRD</div>
             <img id="user-logo-layer" src="" alt="Logo">
             <!-- HOLOGRAM WIDGET - REACTOR CORE -->
             <div id="widget-layer">
@@ -1092,7 +1092,7 @@
             <div class="sec-head"><span class="sec-title">IDENTITY</span><div class="sec-dot"></div></div>
             <div class="sec-body">
                 <!-- STATION BUG -->
-                <input type="text" class="inp" id="bug-text" placeholder="STATION_NAME..." value="VNGRD_V34">
+                <input type="text" class="inp" id="bug-text" placeholder="STATION_NAME..." value="VNGRD">
                 <div class="btn-row">
                     <button class="btn" id="btn-set-station" style="flex:2;">SET BUG</button>
                     <button class="btn" id="btn-bug-toggle" title="Toggle Bug">[X]</button>
@@ -1380,7 +1380,7 @@ const APP = {
     wallet: { connected: false, address: null, chainId: null, nfts: [] },
     camera: { stream: null, recorder: null, chunks: [], mode: 'off', isRecording: false, videoEl: null, previewEl: null },
     render: { canvas: null, ctx: null, width: 3840, height: 2160, fps: 0, frameCount: 0, lastTime: 0, lastFpsUpdate: 0, rafId: null, scale: 1.0, pixelCanvas: null, pixelCtx: null, rgbActive: false },
-    bug: { visible: true, text: 'VNGRD_V34', image: null, textMode: 0, textVisible: true, imageVisible: false },
+    bug: { visible: true, text: 'VNGRD', image: null, textMode: 0, textVisible: true, imageVisible: false },
     layers: { logoScale: 1.0, logoSrc: null },
     lowerThird: { visible: false, preset: 'guest' },
     ui: { logoMorph: 0, morphs: ['m1','m2','m3','m4','m5','m6'] },
@@ -1886,7 +1886,7 @@ function makeDraggable(el) {
 if ($('btn-set-station')) {
     $('btn-set-station').onclick = () => {
         const bug = $('station-bug');
-        const text = $('bug-text').value || 'VNGRD_V34';
+        const text = $('bug-text').value || 'VNGRD';
         if (bug) {
             bug.textContent = text;
             bug.style.display = 'block';
@@ -5277,18 +5277,125 @@ function normalizeAndAddMesh(mesh) {
     const center = box.getCenter(new THREE.Vector3());
     mesh.position.sub(center);
     
-    // 7. INJECT
+   // 7. INJECT
     APP.hologram.mesh = mesh; 
     APP.hologram.scene.add(mesh);
     log('SYSTEM: RELAUNCH_COMPLETE');
 }
 
-// SIMPLEST HIDE BUTTON
+// --- INTEGRATED AUDIO DUCKING & UI CONTROLS ---
+
+// 1. SIMPLEST HIDE BUTTON
 if ($('btn-3d-x')) {
     $('btn-3d-x').onclick = () => {
         $('widget-layer').style.display = 'none';
         log('SYSTEM: 3D_WINDOW_STASHED');
     };
-}</script>
+}
+
+// 2. MASTER DUCKING FUNCTION
+const applyAudioDuck = (isActive) => {
+    if (window.APP && APP.audio && APP.audio.masterGain) {
+        const now = APP.audio.context.currentTime;
+        const targetValue = isActive ? 0.15 : 1.0;
+        
+        console.log(isActive ? "CORE: DUCKING_ACTIVE [-16dB]" : "CORE: DUCKING_RESTORED");
+        
+        // Professional fade to avoid pops
+        APP.audio.masterGain.gain.setTargetAtTime(targetValue, now, 0.4);
+    }
+};
+
+// 3. EVENT INTERCEPTOR (Priority Phase)
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    
+    const id = btn.id;
+    if (id === 'btn-go-live') applyAudioDuck(true);
+    if (id === 'btn-end' || id === 'btn-end-live' || id === 'btn-kill') applyAudioDuck(false);
+}, true);
+
+// --- FORCE MOUNT: WALLET LOGIC + AUTO-LOAD ---
+// Paste this at the very bottom of your script, before </script>
+
+setTimeout(() => {
+    const walletBtn = document.getElementById('wallet-badge');
+    
+    if (walletBtn) {
+        // Kill any old listeners to prevent duplicates
+        walletBtn.onclick = null; 
+        
+        walletBtn.onclick = async () => {
+            // 1. Check Environment
+            if (typeof window.ethereum === 'undefined') {
+                alert('CRITICAL: METAMASK NOT DETECTED.\nPlease install the browser extension.');
+                return;
+            }
+
+            // 2. Handle Disconnect
+            if (APP.wallet && APP.wallet.connected) {
+                if (confirm('DISCONNECT WALLET AND RESET PROFILE?')) {
+                    APP.wallet.connected = false;
+                    walletBtn.innerHTML = '<span class="dot off"></span>WALLET';
+                    walletBtn.style.color = 'var(--o)';
+                    walletBtn.style.borderColor = 'var(--o)';
+                    // Optional: Reset to Cyan/Default theme here
+                    log('WALLET: TERMINATED');
+                }
+                return;
+            }
+
+            // 3. Connect & Auto-Load
+            try {
+                log('CONNECTING_TO_CHAIN...');
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const address = accounts[0];
+                
+                // Update State
+                APP.wallet = { connected: true, address: address };
+                
+                // Update Visuals
+                const shortAddr = address.substring(0,6) + '...' + address.substring(38);
+                walletBtn.innerHTML = `<span class="dot" style="background:var(--g);box-shadow:0 0 8px var(--g)"></span>${shortAddr}`;
+                walletBtn.style.color = 'var(--g)';
+                walletBtn.style.borderColor = 'var(--g)';
+                log(`WALLET_LINKED: ${shortAddr}`);
+
+                // --- THE AUTO-LOAD FEATURE ---
+                const savedSkin = localStorage.getItem(`VNGRD_SKIN_${address}`);
+                if (savedSkin) {
+                    log('RECOGNIZED_OPERATOR: LOADING_DNA...');
+                    const skinData = JSON.parse(savedSkin);
+                    
+                    // Inject Colors
+                    if (skinData.cssVars) {
+                        for (const [key, value] of Object.entries(skinData.cssVars)) {
+                            document.documentElement.style.setProperty(key, value);
+                        }
+                    }
+                    // Inject Settings
+                    if (skinData.vj) APP.vj = { ...APP.vj, ...skinData.vj };
+                    if (skinData.bug) {
+                        APP.bug.text = skinData.bug;
+                        if (document.getElementById('station-bug')) {
+                            document.getElementById('station-bug').textContent = skinData.bug;
+                        }
+                    }
+                    log('PROFILE_RESTORED_SUCCESSFULLY');
+                } else {
+                    log('NEW_ID_DETECTED: INITIALIZING_DEFAULT_SKIN');
+                }
+
+            } catch (err) {
+                log('CONNECTION_FAILED: ' + err.message);
+                console.error(err);
+            }
+        };
+        console.log("SYSTEM: WALLET_LISTENER_MOUNTED_FORCEFULLY");
+    } else {
+        console.error("SYSTEM_ERR: Wallet Badge ID not found.");
+    }
+}, 1000); // 1-second delay ensures DOM is ready</script>
 </body>
 </html>
