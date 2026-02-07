@@ -310,6 +310,59 @@ class Compositor {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // THREE.JS SCENE DISPOSAL
+    // Traverses the hierarchy and explicitly disposes all GPU resources
+    // to prevent WebGL context leaks on shutdown/reset.
+    // ─────────────────────────────────────────────────────────────
+    disposeScene(scene) {
+        if (!scene) return;
+
+        // Walk every node in the scene graph
+        scene.traverse((object) => {
+            // Geometry
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+
+            // Materials — can be a single material or an array
+            if (object.material) {
+                const materials = Array.isArray(object.material)
+                    ? object.material
+                    : [object.material];
+
+                for (const mat of materials) {
+                    // Dispose every texture property on the material
+                    for (const key of Object.keys(mat)) {
+                        const value = mat[key];
+                        if (value && typeof value === 'object' && typeof value.dispose === 'function') {
+                            value.dispose();
+                        }
+                    }
+                    mat.dispose();
+                }
+            }
+        });
+
+        // Clear all children from the scene
+        while (scene.children.length > 0) {
+            scene.remove(scene.children[0]);
+        }
+    }
+
+    // Dispose a standalone Three.js renderer and release its WebGL context
+    static disposeRenderer(renderer) {
+        if (!renderer) return;
+        renderer.renderLists.dispose();
+        renderer.dispose();
+        // Force WebGL context loss to free GPU memory immediately
+        const gl = renderer.getContext();
+        if (gl) {
+            const ext = gl.getExtension('WEBGL_lose_context');
+            if (ext) ext.loseContext();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // CLEANUP
     // ─────────────────────────────────────────────────────────────
     destroy() {
