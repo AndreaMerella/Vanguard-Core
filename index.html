@@ -2040,8 +2040,19 @@ if ($('btn-3d-x')) {
     $('btn-3d-x').onclick = () => {
         const widget = $('widget-layer');
         if (widget) {
+            // Full GPU teardown via Compositor.disposeScene
+            if (APP.hologram && APP.hologram.scene) {
+                if (window.Compositor) Compositor.disposeRenderer(APP.hologram.renderer);
+                if (APP.compositor) APP.compositor.disposeScene(APP.hologram.scene);
+                APP.hologram.mesh = null;
+                APP.hologram.renderer = null;
+                APP.hologram.scene = null;
+                APP.hologram.camera = null;
+                if (APP.hologram.rafId) cancelAnimationFrame(APP.hologram.rafId);
+                APP.hologram.rafId = null;
+            }
             widget.style.display = 'none';
-            log('SYSTEM: 3D_WINDOW_CLOSED');
+            log('SYSTEM: 3D_DISPOSED_AND_CLOSED');
         }
     };
 }
@@ -4654,7 +4665,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             // Using Alchemy API (free tier)
-            const alchemyKey = 'demo'; // Replace with actual key for production
+            // Reads key from window.VNGRD_CONFIG (injected at build/deploy time) or falls back to meta tag
+            const alchemyKey = (window.VNGRD_CONFIG && window.VNGRD_CONFIG.ALCHEMY_KEY)
+                || document.querySelector('meta[name="alchemy-key"]')?.content
+                || 'demo';
             const resp = await fetch(`https://eth-mainnet.g.alchemy.com/nft/v2/${alchemyKey}/getNFTs?owner=${APP.wallet.address}&pageSize=10`);
             const data = await resp.json();
             
@@ -5358,9 +5372,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = URL.createObjectURL(file);
                 const ext = file.name.toLowerCase().split('.').pop();
                 
+                // Dispose previous hologram to prevent renderer/context leak
+                if (APP.hologram && APP.hologram.scene) {
+                    if (window.Compositor) {
+                        APP.compositor && APP.compositor.disposeScene(APP.hologram.scene);
+                        Compositor.disposeRenderer(APP.hologram.renderer);
+                    }
+                    if (APP.hologram.rafId) cancelAnimationFrame(APP.hologram.rafId);
+                    APP.hologram.mesh = null;
+                    APP.hologram.renderer = null;
+                    APP.hologram.scene = null;
+                    APP.hologram.camera = null;
+                    APP.hologram.rafId = null;
+                }
+
                 const container = document.getElementById('widget-layer');
                 container.innerHTML = '<canvas id="hologram-canvas"></canvas>';
                 container.style.opacity = '1';
+                container.style.display = 'block';
                 
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
@@ -5388,8 +5417,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     model.position.z += (model.position.z - center.z);
                     model.scale.setScalar(3.0 / maxDim);
                     scene.add(model);
+                    // Store references for proper teardown on next load/delete
+                    APP.hologram.scene = scene;
+                    APP.hologram.camera = camera;
+                    APP.hologram.renderer = renderer;
+                    APP.hologram.mesh = model;
                     const anim = () => {
-                        requestAnimationFrame(anim);
+                        APP.hologram.rafId = requestAnimationFrame(anim);
                         model.rotation.y += 0.01;
                         renderer.render(scene, camera);
                     };
@@ -5464,14 +5498,18 @@ function toggleHologramVisibility(show) {
         hologramLayer.style.display = 'block';
         log('SYSTEM: 3D_HOLOGRAM_ACTIVE');
     } else {
-        // Stage 1: Hide
         hologramLayer.style.display = 'none';
-        
-        // Stage 2: Purge existing model to allow fresh load
-        if (APP.hologram.mesh) {
-            APP.hologram.scene.remove(APP.hologram.mesh);
-            APP.hologram.mesh = null; 
-            log('SYSTEM: MESH_PURGED_FOR_RELOAD');
+        // Full GPU teardown — dispose geometry, materials, textures, renderer
+        if (APP.hologram && APP.hologram.scene) {
+            if (window.Compositor) Compositor.disposeRenderer(APP.hologram.renderer);
+            if (APP.compositor) APP.compositor.disposeScene(APP.hologram.scene);
+            APP.hologram.mesh = null;
+            APP.hologram.renderer = null;
+            APP.hologram.scene = null;
+            APP.hologram.camera = null;
+            if (APP.hologram.rafId) cancelAnimationFrame(APP.hologram.rafId);
+            APP.hologram.rafId = null;
+            log('SYSTEM: 3D_FULLY_DISPOSED');
         }
     }
 }
@@ -5536,8 +5574,19 @@ function normalizeAndAddMesh(mesh) {
 // 1. SIMPLEST HIDE BUTTON
 if ($('btn-3d-x')) {
     $('btn-3d-x').onclick = () => {
+        // Full GPU teardown via Compositor.disposeScene
+        if (APP.hologram && APP.hologram.scene) {
+            if (window.Compositor) Compositor.disposeRenderer(APP.hologram.renderer);
+            if (APP.compositor) APP.compositor.disposeScene(APP.hologram.scene);
+            APP.hologram.mesh = null;
+            APP.hologram.renderer = null;
+            APP.hologram.scene = null;
+            APP.hologram.camera = null;
+            if (APP.hologram.rafId) cancelAnimationFrame(APP.hologram.rafId);
+            APP.hologram.rafId = null;
+        }
         $('widget-layer').style.display = 'none';
-        log('SYSTEM: 3D_WINDOW_STASHED');
+        log('SYSTEM: 3D_DISPOSED_AND_STASHED');
     };
 }
 
