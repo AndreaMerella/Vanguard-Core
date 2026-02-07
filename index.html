@@ -2725,7 +2725,7 @@ function injectDNAHeader(dna, seal) {
 function portalCamPreview() {
     const cam = $('cam-preview-float');
     if (!cam) return;
-    document.body.appendChild(cam);
+    // Elevate z-index without reparenting — moving the node breaks camera init wiring
     cam.style.zIndex = '9999';
     cam.style.position = 'fixed';
     log('PORTAL: CAM_ELEVATED');

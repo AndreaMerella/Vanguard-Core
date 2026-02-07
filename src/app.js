@@ -2331,8 +2331,7 @@ function portalCamPreview() {
     const camFloat = $('cam-preview-float');
     if (!camFloat) return;
 
-    // Move to document.body for top-level z-index
-    document.body.appendChild(camFloat);
+    // Elevate z-index without reparenting — moving the node breaks camera init wiring
     camFloat.style.zIndex = '9999';
     camFloat.style.position = 'fixed';
     log('PORTAL: CAM_PREVIEW_ELEVATED');
