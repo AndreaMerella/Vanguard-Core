@@ -1966,7 +1966,7 @@ function renderLoop(timestamp) {
         }
     }
     
-    // ACTOR 3: 3D MODEL (renderLoop drives rotation + render, zero zombie loops)
+    // ACTOR 3: 3D MODEL (renderLoop drives rotation + render on hologram-canvas)
     if (T.holo.visible) {
         var holoCanvas = $('hologram-canvas');
         if (holoCanvas && holoCanvas.width > 0) {
@@ -1984,7 +1984,85 @@ function renderLoop(timestamp) {
             ctx.restore();
         }
     }
-        
+
+    // ═══ WEATHER COMPOSITE — trasudate + atmosphere onto single canvas ═══
+    if (APP.trasudate && APP.trasudate.active && APP.trasudate.canvas) {
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        try { ctx.drawImage(APP.trasudate.canvas, 0, 0, w, h); } catch(e) {}
+        ctx.restore();
+    }
+    if (APP.atmosphere && APP.atmosphere.canvas) {
+        var atmosCanvas = APP.atmosphere.canvas;
+        if (atmosCanvas.width > 0 && atmosCanvas.height > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            try { ctx.drawImage(atmosCanvas, 0, 0, w, h); } catch(e) {}
+            ctx.restore();
+        }
+    }
+    if (APP.atmosphere && APP.atmosphere.refractionCanvas) {
+        var refCanvas = APP.atmosphere.refractionCanvas;
+        if (refCanvas.width > 0 && refCanvas.height > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.globalAlpha = 0.3;
+            try { ctx.drawImage(refCanvas, 0, 0, w, h); } catch(e) {}
+            ctx.restore();
+        }
+    }
+
+    // ═══ LOWER THIRD BURN-IN — composited onto canvas for NFT capture ═══
+    if (APP.lowerThird && APP.lowerThird.visible) {
+        var ltTitle = $('lt-title-text');
+        var ltSub = $('lt-subtitle-text');
+        if (ltTitle) {
+            ctx.save();
+            var ltX = w * 0.016;
+            var ltY = h - (h * 0.08);
+            var ltPad = h * 0.012;
+            var titleFS = Math.max(16, h * 0.022);
+            var subFS = Math.max(10, h * 0.012);
+            var titleText = ltTitle.textContent || '';
+            var subText = ltSub ? ltSub.textContent || '' : '';
+
+            // Measure for background
+            ctx.font = '700 ' + titleFS + 'px Orbitron, sans-serif';
+            var titleW = ctx.measureText(titleText).width;
+            ctx.font = '400 ' + subFS + 'px "JetBrains Mono", monospace';
+            var subW = ctx.measureText(subText).width;
+            var boxW = Math.max(titleW, subW) + ltPad * 3;
+            var boxH = titleFS + subFS + ltPad * 2.5;
+
+            // Background bar
+            var grad = ctx.createLinearGradient(ltX, 0, ltX + boxW, 0);
+            grad.addColorStop(0, 'rgba(0,0,0,0.9)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(ltX, ltY - boxH, boxW, boxH);
+
+            // Accent bar (left edge)
+            var accentColor = '#00f3ff';
+            if (APP.lowerThird.preset === 'guest') accentColor = '#00f3ff';
+            else if (APP.lowerThird.preset === 'track') accentColor = '#00ff88';
+            else if (APP.lowerThird.preset === 'breaking') accentColor = '#ff3333';
+            ctx.fillStyle = accentColor;
+            ctx.fillRect(ltX, ltY - boxH, 3, boxH);
+
+            // Title
+            ctx.font = '700 ' + titleFS + 'px Orbitron, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText(titleText, ltX + ltPad, ltY - boxH + ltPad);
+
+            // Subtitle
+            ctx.font = '400 ' + subFS + 'px "JetBrains Mono", monospace';
+            ctx.fillStyle = accentColor;
+            ctx.fillText(subText.toUpperCase(), ltX + ltPad, ltY - boxH + ltPad + titleFS + 4);
+
+            ctx.restore();
+        }
+    }
 
     // ═══ PERMANENT SIGNATURE — untouchable, not part of Trinity ═══
     ctx.save();
@@ -5555,7 +5633,7 @@ if (btn) {
             const url = URL.createObjectURL(file);
             const ext = file.name.split('.').pop().toLowerCase();
 
-            // 3. Engine Setup
+            // 3. Engine Setup — scene + camera + renderer on #hologram-canvas
             if (!window.APP.hologram.scene) {
                 const scene = new THREE.Scene();
                 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
@@ -5566,6 +5644,25 @@ if (btn) {
                 scene.add(dirLight);
                 window.APP.hologram.scene = scene;
                 window.APP.hologram.camera = camera;
+
+                // Create WebGLRenderer on existing #hologram-canvas
+                var holoCanvas = document.getElementById('hologram-canvas');
+                if (holoCanvas) {
+                    holoCanvas.width = 512;
+                    holoCanvas.height = 512;
+                    var renderer = new THREE.WebGLRenderer({
+                        canvas: holoCanvas,
+                        alpha: true,
+                        antialias: true,
+                        preserveDrawingBuffer: true
+                    });
+                    renderer.setSize(512, 512);
+                    renderer.setClearColor(0x000000, 0);
+                    window.APP.hologram.renderer = renderer;
+                    // Show the widget layer so canvas is in DOM
+                    var wl = document.getElementById('widget-layer');
+                    if (wl) wl.style.display = 'block';
+                }
             }
 
             // 4. Cleanup
@@ -5676,12 +5773,18 @@ function runVanguardTrack() {
 // 1. SIMPLEST HIDE BUTTON
 if ($('btn-3d-x')) {
     $('btn-3d-x').onclick = () => {
-        // Dispose mesh
+        // Dispose mesh geometry+material
         if (APP.hologram && APP.hologram.mesh && APP.hologram.scene) {
             APP.hologram.scene.remove(APP.hologram.mesh);
+            APP.hologram.mesh.traverse(function(c) {
+                if (c.isMesh) {
+                    if (c.geometry) c.geometry.dispose();
+                    if (c.material) c.material.dispose();
+                }
+            });
             APP.hologram.mesh = null;
         }
-        // Dispose renderer
+        // Dispose renderer (releases WebGL context)
         if (APP.hologram && APP.hologram.renderer) {
             APP.hologram.renderer.dispose();
             APP.hologram.renderer = null;
@@ -5691,9 +5794,9 @@ if ($('btn-3d-x')) {
             APP.hologram.scene = null;
             APP.hologram.camera = null;
         }
-        // Hide widget-layer
+        // Hide widget-layer (keep canvas element intact for re-use)
         var layer = $('widget-layer');
-        if (layer) { layer.innerHTML = ''; layer.style.display = 'none'; }
+        if (layer) layer.style.display = 'none';
         // Update Trinity state
         APP.trinity.holo.visible = false;
         log('SYSTEM: 3D_DISPOSED');
