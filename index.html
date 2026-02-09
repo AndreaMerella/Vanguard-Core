@@ -1462,6 +1462,13 @@ document.addEventListener('keydown', e => {
 });
 document.ondragstart = function() { return false; };
 
+// ══════════════════════════════════════════════════
+// CACHE BUSTER — forces browser to load new logic
+// ══════════════════════════════════════════════════
+window.VANGUARD_VERSION = '1.0.1';
+window.VANGUARD_BUILD = '2026-02-09T' + Date.now();
+console.log('[VNGRD] Version ' + window.VANGUARD_VERSION + ' build ' + window.VANGUARD_BUILD);
+
 const APP = {
     state: { isLive: false, isRecording: false, isFullscreen: false, isCycle: false, cycleTimer: null, isMobile: false, theme: 'cyan', startTime: Date.now(), psychosis: false },
     vj: { 
