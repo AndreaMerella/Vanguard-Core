@@ -1324,7 +1324,7 @@ body.shooting-mode #btn-shooting {
         </div>
         
         <div class="section">
-            <div class="sec-head"><span class="sec-title">NFT_FACTORY</span><div class="sec-dot"></div></div>
+            <div class="sec-head"><span class="sec-title">SESSION_LAB</span><div class="sec-dot"></div></div>
             <div class="sec-body">
                 <button class="btn rec" id="btn-nft-30">CAPTURE_VGD_CLIP</button>
                 <button class="btn" id="btn-save-session">SAVE_SESSION</button>
@@ -1399,7 +1399,7 @@ body.shooting-mode #btn-shooting {
     
     <div id="nft-hud">
         <div id="nft-timer">00:00</div>
-        <div id="nft-label">NFT_RECORDING</div>
+        <div id="nft-label">SYSTEM_CAPTURING</div>
         <div class="nft-bar"><div class="nft-fill" id="nft-fill"></div></div>
     </div>
 
@@ -2613,9 +2613,10 @@ $('btn-rec').onclick = () => {
         $('rec-status').style.display = 'none'; 
     } else {
         const stream = APP.render.canvas.captureStream(60);
-        if(APP.audio.source && APP.audio.ctx) {
+        if(APP.audio.ctx) {
             const dest = APP.audio.ctx.createMediaStreamDestination();
-            APP.audio.source.connect(dest); 
+            if(APP.audio.masterGain) APP.audio.masterGain.connect(dest);
+            if(APP.audio.micGainNode) APP.audio.micGainNode.connect(dest);
             if(dest.stream.getAudioTracks().length > 0) stream.addTrack(dest.stream.getAudioTracks()[0]);
         }
         APP.broadcast.chunks = [];
@@ -5795,7 +5796,12 @@ document.addEventListener('DOMContentLoaded', () => {
         var renderer = new THREE.WebGLRenderer({ canvas: holoCanvas, antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(512, 512, false); renderer.setClearColor(0x000000, 1);
 
-        // D. FILE HUNTER: Target the CORRECT 3D file input by ID
+        // D. GLOBAL INIT: Assign scene/camera/renderer to APP immediately
+        window.APP.hologram.scene = scene;
+        window.APP.hologram.camera = camera;
+        window.APP.hologram.renderer = renderer;
+
+        // E. FILE HUNTER: Target the CORRECT 3D file input by ID
         var fileInput = document.getElementById('file-3d-model');
         var file = (fileInput && fileInput.files.length > 0) ? fileInput.files[0] : null;
 
@@ -5845,6 +5851,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 mesh.position.sub(center); // center the model
                 var scale = 3 / size;
                 mesh.scale.set(scale, scale, scale);
+                mesh.layers.set(0);
+                mesh.traverse(function(child) { if (child.isMesh) child.layers.set(0); });
                 finalizeInjection(scene, camera, renderer, mesh);
             }
         }
@@ -5899,8 +5907,12 @@ document.addEventListener('DOMContentLoaded', () => {
             window.APP.trinity.holo.y = 0.25;
             window.APP.trinity.holo.scale = 1.0;
             window.APP.trinity.holo.visible = true;
-            // Render Trigger
+            // Render Trigger + Layer Fix
+            mesh.layers.set(0);
+            mesh.traverse(function(child) { if (child.isMesh) child.layers.set(0); });
             renderer.render(scene, camera);
+            // rAF wake — force the scene alive
+            requestAnimationFrame(function() { renderer.render(scene, camera); });
             if (window.log) log('3D_INJECTED');
         }
     };
