@@ -2606,24 +2606,32 @@ function goLive() {
     }, 1000);
 }
 
+// LINK: REC_BROADCAST button → MediaRecorder.start()
 $('btn-rec').onclick = () => {
     const btn = $('btn-rec');
     if(APP.broadcast.isRecording) {
         APP.broadcast.recorder.stop(); APP.broadcast.isRecording = false; btn.innerText = 'SAVING...'; btn.classList.remove('active'); 
         $('rec-status').style.display = 'none'; 
     } else {
-        const stream = APP.render.canvas.captureStream(60);
+        // BRIDGE: MediaStreamDestination from AudioContext
+        const videoStream = APP.render.canvas.captureStream(60);
+        const videoTrack = videoStream.getVideoTracks()[0];
+        let combinedStream;
         if(APP.audio.ctx) {
-            const dest = APP.audio.ctx.createMediaStreamDestination();
-            if(APP.audio.masterGain) APP.audio.masterGain.connect(dest);
-            if(APP.audio.micGainNode) APP.audio.micGainNode.connect(dest);
-            if(dest.stream.getAudioTracks().length > 0) stream.addTrack(dest.stream.getAudioTracks()[0]);
+            const audioDest = APP.audio.ctx.createMediaStreamDestination();
+            if(APP.audio.masterGain) APP.audio.masterGain.connect(audioDest);
+            if(APP.audio.micGainNode) APP.audio.micGainNode.connect(audioDest);
+            const audioTrack = audioDest.stream.getAudioTracks()[0];
+            // COMBINE: video + audio merged into single MediaStream
+            combinedStream = audioTrack ? new MediaStream([videoTrack, audioTrack]) : new MediaStream([videoTrack]);
+        } else {
+            combinedStream = new MediaStream([videoTrack]);
         }
         APP.broadcast.chunks = [];
-        // Phase 1: 15Mbps VP9 codec enforcement
+        // 15Mbps VP9 codec enforcement
         let bcastOpts = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 15000000, audioBitsPerSecond: 128000 };
-        try { APP.broadcast.recorder = new MediaRecorder(stream, bcastOpts); }
-        catch(e) { APP.broadcast.recorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); }
+        try { APP.broadcast.recorder = new MediaRecorder(combinedStream, bcastOpts); }
+        catch(e) { APP.broadcast.recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' }); }
         APP.broadcast.recorder.ondataavailable = e => APP.broadcast.chunks.push(e.data);
         APP.broadcast.recorder.onstop = () => {
             const blob = new Blob(APP.broadcast.chunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `VNGRD_BROADCAST_${Date.now()}.webm`; a.click(); btn.innerText = 'REC_BROADCAST'; log('BROADCAST_SAVED');
@@ -2988,18 +2996,24 @@ function loadFromMemory() {
 function startNFTRecording() {
     if (APP.nft.isRecording) { stopNFTRecording(); return; }
     try {
-        const canvasStream = APP.render.canvas.captureStream(60);
-        // Mix audio into NFT recording
+        // BRIDGE: MediaStreamDestination from AudioContext
+        const videoStream = APP.render.canvas.captureStream(60);
+        const videoTrack = videoStream.getVideoTracks()[0];
+        let combinedStream;
         if (APP.audio.ctx) {
             const nftDest = APP.audio.ctx.createMediaStreamDestination();
             if (APP.audio.masterGain) APP.audio.masterGain.connect(nftDest);
             if (APP.audio.micGainNode) APP.audio.micGainNode.connect(nftDest);
-            if (nftDest.stream.getAudioTracks().length > 0) canvasStream.addTrack(nftDest.stream.getAudioTracks()[0]);
+            const audioTrack = nftDest.stream.getAudioTracks()[0];
+            // COMBINE: video + audio merged into single MediaStream
+            combinedStream = audioTrack ? new MediaStream([videoTrack, audioTrack]) : new MediaStream([videoTrack]);
+        } else {
+            combinedStream = new MediaStream([videoTrack]);
         }
-        // Phase 1: 15Mbps VP9 codec enforcement
+        // 5Mbps VP9 codec enforcement
         let nftRecorderOpts = { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 5000000, audioBitsPerSecond: 128000 };
-        try { APP.nft.recorder = new MediaRecorder(canvasStream, nftRecorderOpts); }
-        catch(e) { APP.nft.recorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' }); }
+        try { APP.nft.recorder = new MediaRecorder(combinedStream, nftRecorderOpts); }
+        catch(e) { APP.nft.recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' }); }
         APP.nft.chunks = [];
         APP.nft.recorder.ondataavailable = e => APP.nft.chunks.push(e.data);
         APP.nft.recorder.onstop = finalizeNFT;
@@ -3963,7 +3977,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- NFT RECORDING ---
+    // LINK: CAPTURE_VGD_CLIP button → MediaRecorder.start() via startNFTRecording
     $('btn-nft-30').onclick = startNFTRecording;
 
     // ========================================
