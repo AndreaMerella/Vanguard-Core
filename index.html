@@ -414,27 +414,9 @@
             z-index: 10;
         }
         
-        /* WEBGL LENS DRIP SHADER LAYER */
-        #lens-drip-canvas {
-            position: absolute;
-            inset: 0;
-            z-index: 2450;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        #lens-drip-canvas.active { opacity: 1; }
+
         
-        /* HEAT HAZE DISTORTION */
-        #heat-haze-canvas {
-            position: absolute;
-            inset: 0;
-            z-index: 2451;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        #heat-haze-canvas.active { opacity: 1; }
+
         
         /* REFRACTIVE GLASS SHARDS - WebGL */
         .glass-shard-webgl {
@@ -770,92 +752,12 @@ body.shooting-mode #btn-shooting {
         }
         body.shooting-mode #shooting-overlay { display: block; pointer-events: auto; }
         
-        /* ========================================
-           TRASUDATE ENGINE - LIQUID PHYSICS
-           DISPLACEMENT_MAP WARPING ENTIRE UI
-           ======================================== */
-        #trasudate-layer {
-            position: fixed;
-            inset: 0;
-            z-index: 99000;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        #trasudate-canvas {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-        .trasudate-drop {
-            position: absolute;
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-            background: radial-gradient(ellipse at 30% 20%, 
-                rgba(255,255,255,0.5) 0%, 
-                rgba(200,220,255,0.25) 30%, 
-                rgba(150,180,220,0.15) 60%,
-                transparent 100%);
-            box-shadow: 
-                inset -2px -2px 10px rgba(255,255,255,0.4),
-                inset 2px 2px 5px rgba(0,0,0,0.15),
-                0 3px 10px rgba(0,0,0,0.3);
-            pointer-events: none;
-            backdrop-filter: blur(2px) saturate(1.3) brightness(1.1);
-            transform-origin: center bottom;
-        }
-        .trasudate-trail {
-            position: absolute;
-            width: 4px;
-            background: linear-gradient(180deg, rgba(200,220,255,0.4), transparent);
-            border-radius: 3px;
-            pointer-events: none;
-        }
         
-        /* DISPLACEMENT WARP ACTIVE STATE */
-        body.trasudate-active {
-            filter: url(#trasudate-displacement);
-        }
-        body.trasudate-active .sidebar,
-        body.trasudate-active #stage,
-        body.trasudate-active #top-bar,
-        body.trasudate-active #bottom-bar {
-            filter: url(#trasudate-displacement);
-        }
+
         
-        /* SATELLITE_ATMOSPHERE_ENGINE */
-        #atmos-canvas {
-            position: absolute;
-            inset: 0;
-            z-index: 2500;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        #atmos-canvas.active { opacity: 1; }
+
         
-        /* REFRACTION BUFFER FOR DISPLACEMENT */
-        #refraction-buffer {
-            position: absolute;
-            inset: 0;
-            z-index: 2400;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-        #refraction-buffer.active { opacity: 1; }
         
-        .rain-drop {
-            position: absolute;
-            width: 2px;
-            background: linear-gradient(180deg, transparent, var(--accent), var(--p));
-            pointer-events: none;
-            filter: blur(0.5px);
-        }
-        
-        bodyfalse-active #stage {
-            animation: heat-shimmer 0.15s infinite;
-        }
-        @keyframes heat-shimmer {
-            0%, 100% { transform: translateX(0); }
             25% { transform: translateX(1px); }
             75% { transform: translateX(-1px); }
         }
@@ -993,10 +895,7 @@ body.shooting-mode #btn-shooting {
     <!-- SHOOTING_OVERLAY -->
     <div id="shooting-overlay"></div>
     
-    <!-- TRASUDATE_LAYER - LIQUID PHYSICS -->
-    <div id="trasudate-layer">
-        <canvas id="trasudate-canvas"></canvas>
-    </div>
+
     
     <svg style="position:absolute;width:0;height:0;">
         <defs>
@@ -1015,23 +914,8 @@ body.shooting-mode #btn-shooting {
                 </feTurbulence>
                 <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
             </filter>
-            <!-- TRASUDATE DISPLACEMENT FILTER - LIQUID MAGNIFICATION -->
-            <filter id="trasudate-displacement" x="-5%" y="-5%" width="110%" height="110%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur"/>
-                <feTurbulence type="fractalNoise" baseFrequency="0.01 0.02" numOctaves="3" seed="0" result="noise">
-                    <animate attributeName="seed" from="0" to="50" dur="3s" repeatCount="indefinite"/>
-                </feTurbulence>
-                <feDisplacementMap in="blur" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
-                <feComposite in="displaced" in2="SourceGraphic" operator="over"/>
-            </filter>
-            <!-- LIQUID REFRACTION FILTER -->
-            <filter id="liquid-refract" x="-10%" y="-10%" width="120%" height="120%">
-                <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                <feSpecularLighting result="spec" specularConstant="2" specularExponent="25" lighting-color="#ffffff">
-                    <fePointLight x="100" y="50" z="250"/>
-                </feSpecularLighting>
-                <feComposite in="SourceGraphic" in2="spec" operator="arithmetic" k1="0" k2="1" k3="0.8" k4="0"/>
-            </filter>
+
+
         </defs>
     </svg>
     
@@ -1065,11 +949,7 @@ body.shooting-mode #btn-shooting {
 
     <main id="stage">
         <canvas id="vj-canvas"></canvas>
-        <canvas id="refraction-buffer"></canvas>
-        <canvas id="atmos-canvas"></canvas>
-        <!-- WEBGL SHADER LAYERS -->
-        <canvas id="lens-drip-canvas"></canvas>
-        <canvas id="heat-haze-canvas"></canvas>
+
         <div id="glass-fracture-layer"></div>
         <div id="overlay-layer">
             <!-- V33 MANUAL LAYER SEPARATION -->
@@ -1256,7 +1136,7 @@ body.shooting-mode #btn-shooting {
             <div class="sec-body">
                 <div id="geo-status" style="font-size:8px;color:var(--text-dim);margin-bottom:4px;">GEO: ACQUIRING...</div>
                 <div id="weather-status" style="font-size:9px;color:var(--accent);margin-bottom:4px;">WEATHER: STANDBY</div>
-                <div id="weather-fx" style="font-size:7px;color:var(--g);">FX: AUTO (RAIN=DRIP / HOT=HAZE)</div>
+                <div id="weather-fx" style="font-size:7px;color:var(--g);">FX: DISABLED (DATA ONLY)</div>
             </div>
         </div>
         
@@ -1540,26 +1420,8 @@ const APP = {
         refractionCanvas: null, refractionCtx: null,
         midiOverride: false
     },
-    // WEBGL SHADERS
-    shaders: {
-        lensDrip: { active: false, canvas: null, gl: null, program: null, time: 0, rafId: null },
-        heatHaze: { active: false, canvas: null, gl: null, program: null, time: 0, rafId: null }
-    },
-    // TRASUDATE_ENGINE - LIQUID_PHYSICS
-    trasudate: {
-        active: false,
-        canvas: null, ctx: null,
-        drops: [],
-        rafId: null,
-        physics: {
-            gravity: 0.12,
-            surfaceTension: 0.65,
-            mergeThreshold: 30,
-            trailFade: 0.015,
-            viscosity: 0.94,
-            maxDrops: 50
-        }
-    },
+
+
     // HOLOGRAM_ENGINE - THREE.JS REACTOR CORE
     hologram: {
         scene: null, camera: null, renderer: null,
@@ -1654,18 +1516,7 @@ function processGhostCommand(cmd) {
             }
             ghostLog('GLASS_MATRIX: SHATTERED', 'success');
         }
-        // TRASUDATE - Toggle liquid physics engine
-        else if (c === 'trasudate' || c === 'liquid' || c === 'rain') {
-            APP.trasudate.active = !APP.trasudate.active;
-            if (APP.trasudate.active) {
-                initTrasudateEngine();
-                ghostLog('TRASUDATE_ENGINE: ONLINE', 'success');
-                ghostLog('FLUID_PHYSICS: MERGING | TENSION | TRAILING', 'ai');
-            } else {
-                stopTrasudateEngine();
-                ghostLog('TRASUDATE_ENGINE: OFFLINE', 'ai');
-            }
-        }
+
         // LOAD - Open directory picker for media scan
         else if (c === 'load' || c === 'scan') {
             ghostLog('LOAD_PROTOCOL: SCANNING...', 'ai');
@@ -2020,32 +1871,6 @@ function renderLoop(timestamp) {
         }
     }
 
-    // ═══ WEATHER COMPOSITE — trasudate + atmosphere onto single canvas ═══
-    if (APP.trasudate && APP.trasudate.active && APP.trasudate.canvas) {
-        ctx.save();
-        ctx.globalAlpha = 0.6;
-        try { ctx.drawImage(APP.trasudate.canvas, 0, 0, w, h); } catch(e) {}
-        ctx.restore();
-    }
-    if (APP.atmosphere && APP.atmosphere.canvas) {
-        var atmosCanvas = APP.atmosphere.canvas;
-        if (atmosCanvas.width > 0 && atmosCanvas.height > 0) {
-            ctx.save();
-            ctx.globalAlpha = 0.5;
-            try { ctx.drawImage(atmosCanvas, 0, 0, w, h); } catch(e) {}
-            ctx.restore();
-        }
-    }
-    if (APP.atmosphere && APP.atmosphere.refractionCanvas) {
-        var refCanvas = APP.atmosphere.refractionCanvas;
-        if (refCanvas.width > 0 && refCanvas.height > 0) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.globalAlpha = 0.3;
-            try { ctx.drawImage(refCanvas, 0, 0, w, h); } catch(e) {}
-            ctx.restore();
-        }
-    }
 
     // ══════════════════════════════════════════════════
     // BURN-IN LOWER THIRD — Premium Broadcast Canvas Render
@@ -4694,12 +4519,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.classList.add('voice-flash');
                 setTimeout(() => document.body.classList.remove('voice-flash'), 80);
                 
-                // Speed up trasudate drops on high volume
-                if (APP.trasudate.active && APP.trasudate.drops) {
-                    APP.trasudate.drops.forEach(drop => {
-                        drop.vy += 0.5;
-                    });
-                }
             }
             
             requestAnimationFrame(update);
@@ -4715,29 +4534,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ========================================
-    // SATELLITE_ATMOSPHERE_ENGINE
-    // GEO_HANDSHAKE + OPEN-METEO API + REFRACTIVE RAIN
+    // SATELLITE_WEATHER_DATA (FX STRIPPED)
+    // GEO_HANDSHAKE + OPEN-METEO API
     // ========================================
-    
-    // Initialize atmosphere canvas and refraction buffer
-    function initAtmosphereCanvas() {
-        APP.atmosphere.canvas = $('atmos-canvas');
-        APP.atmosphere.refractionCanvas = $('refraction-buffer');
-        
-        if (APP.atmosphere.canvas) {
-            APP.atmosphere.ctx = APP.atmosphere.canvas.getContext('2d');
-            const stage = $('stage');
-            APP.atmosphere.canvas.width = stage.clientWidth;
-            APP.atmosphere.canvas.height = stage.clientHeight;
-        }
-        
-        if (APP.atmosphere.refractionCanvas) {
-            APP.atmosphere.refractionCtx = APP.atmosphere.refractionCanvas.getContext('2d');
-            APP.atmosphere.refractionCanvas.width = APP.render.canvas.width;
-            APP.atmosphere.refractionCanvas.height = APP.render.canvas.height;
-        }
-    }
-    
+
     // GEO_HANDSHAKE: Get real coordinates
    async function initAtmosphere() {
     log('GEO_HANDSHAKE: ACQUIRING...');
@@ -4837,11 +4637,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update ticker with METAR data
             updateTickerWithMetar();
             
-            // ========================================
-            // AUTO-WEATHER TRIGGER: Geolocation -> Satellite -> Trasudate
-            // This bridges the satellite data to the rain engine
-            // ========================================
-            processWeatherCondition(weatherCode, condition);
+            // Update UI with weather data (FX stripped)
+            updateWeatherUI(condition, APP.atmosphere.isRaining);
             
             log(`SATELLITE: [${APP.atmosphere.city}] ${APP.atmosphere.metar}`);
             
@@ -4868,121 +4665,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
     
-    // Initialize refraction buffer for displacement mapping
-    function initRefractionBuffer() {
-        if (!APP.atmosphere.refractionCanvas) {
-            APP.atmosphere.refractionCanvas = $('refraction-buffer');
-            if (APP.atmosphere.refractionCanvas) {
-                APP.atmosphere.refractionCtx = APP.atmosphere.refractionCanvas.getContext('2d');
-                const stage = $('stage');
-                APP.atmosphere.refractionCanvas.width = stage.clientWidth;
-                APP.atmosphere.refractionCanvas.height = stage.clientHeight;
-            }
-        }
-        $('refraction-buffer').classList.add('active');
-    }
+
     
-    // CLEAN RAIN DROP - realistic stutter-and-slide physics
-    function createRefractiveRainDrop() {
-        if (!APP.atmosphere.ctx) return;
-        
-        const canvas = APP.atmosphere.canvas;
-        const intensity = APP.atmosphere.intensity || 50;
-        const drop = {
-            x: Math.random() * canvas.width,
-            y: -30,
-            length: 15 + Math.random() * 25,
-            speed: 8 + Math.random() * 12 + (intensity / 10),
-            opacity: 0.3 + Math.random() * 0.4,
-            // Stutter-and-slide physics
-            velocity: 0,
-            gravity: 0.6 + Math.random() * 0.4,
-            stutter: Math.random() < 0.2,
-            stutterCounter: 0,
-            maxStutter: 3 + Math.floor(Math.random() * 6),
-            refractIndex: 1.15 + Math.random() * 0.2
-        };
-        APP.atmosphere.rainDrops.push(drop);
-    }
     
-    // Render CLEAN realistic rain - no psychedelic colors
-    function renderRefractiveRain() {
-        if (!APP.atmosphere.ctx || !APP.trasudate.active) return;
-        
-        const ctx = APP.atmosphere.ctx;
-        const canvas = APP.atmosphere.canvas;
-        const vjCanvas = APP.render.canvas;
-        const intensity = APP.atmosphere.intensity || 50;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Create new drops based on intensity
-        const spawnRate = intensity / 30;
-        if (Math.random() < spawnRate) {
-            createRefractiveRainDrop();
-        }
-        
-        // Update and draw drops with stutter-and-slide physics
-        APP.atmosphere.rainDrops = APP.atmosphere.rainDrops.filter(drop => {
-            // Stutter-and-slide gravity
-            if (drop.stutter && drop.stutterCounter < drop.maxStutter) {
-                drop.stutterCounter++;
-                drop.velocity *= 0.4;
-            } else {
-                drop.velocity += drop.gravity;
-                drop.stutter = Math.random() < 0.03;
-                drop.stutterCounter = 0;
-            }
-            
-            drop.y += drop.velocity;
-            
-            // Draw CLEAN rain drop - realistic blue/white gradient
-            const gradient = ctx.createLinearGradient(drop.x, drop.y, drop.x, drop.y + drop.length);
-            gradient.addColorStop(0, 'transparent');
-            gradient.addColorStop(0.2, `rgba(200, 220, 255, ${drop.opacity * 0.3})`);
-            gradient.addColorStop(0.5, `rgba(180, 200, 240, ${drop.opacity * 0.6})`);
-            gradient.addColorStop(0.8, `rgba(160, 180, 220, ${drop.opacity * 0.4})`);
-            gradient.addColorStop(1, 'transparent');
-            
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(drop.x, drop.y);
-            ctx.lineTo(drop.x, drop.y + drop.length);
-            ctx.stroke();
-            
-            // Subtle magnification effect
-            if (APP.atmosphere.refractionCtx && vjCanvas) {
-                try {
-                    const scale = drop.refractIndex;
-                    const sourceX = (drop.x / canvas.width) * vjCanvas.width;
-                    const sourceY = (drop.y / canvas.height) * vjCanvas.height;
-                    const sourceW = 15;
-                    const sourceH = drop.length * 1.5;
-                    
-                    APP.atmosphere.refractionCtx.globalAlpha = 0.08;
-                    APP.atmosphere.refractionCtx.drawImage(
-                        vjCanvas,
-                        sourceX - sourceW/2, sourceY - sourceH/2, sourceW, sourceH,
-                        drop.x - sourceW*scale/2, drop.y - sourceH*scale/2, sourceW * scale, sourceH * scale
-                    );
-                    APP.atmosphere.refractionCtx.globalAlpha = 1;
-                } catch (e) { /* ignore */ }
-            }
-            
-            return drop.y < canvas.height + 50;
-        });
-        
-        if (APP.trasudate.active) {
-            requestAnimationFrame(renderRefractiveRain);
-        }
-    }
     
-    // ========================================
-    // GEOLOCATION -> SATELLITE -> TRASUDATE
-    // Auto-weather integration (no manual buttons)
-    // ========================================
     
     // Update weather UI status displays
     function updateWeatherUI(condition, isRaining) {
@@ -5005,191 +4691,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (atmosDot) atmosDot.classList.toggle('off', !isRaining);
     }
     
-    // Enable rain automatically based on satellite weather
-    function enableRainAuto() {
-        if (!APP.trasudate.active) {
-            APP.trasudate.active = true;
-            initTrasudateEngine();
-            initAtmosphereCanvas();
-            initRefractionBuffer();
-            renderRefractiveRain();
-            log('WEATHER_AUTO: RAIN_ENABLED');
-        }
-    }
+
     
-    // Disable rain automatically
-    function disableRainAuto() {
-        if (APP.trasudate.active) {
-            APP.trasudate.active = false;
-            stopTrasudateEngine();
-            APP.atmosphere.rainDrops = [];
-            if (APP.atmosphere.ctx) {
-                APP.atmosphere.ctx.clearRect(0, 0, APP.atmosphere.canvas.width, APP.atmosphere.canvas.height);
-            }
-            log('WEATHER_AUTO: RAIN_DISABLED');
-        }
-    }
+
     
-    // Parse weather condition and trigger visual effects automatically
-    function processWeatherCondition(weatherCode, condition) {
-        // Weather codes: 51,53,55 = drizzle, 61,63,65 = rain, 80,81,82 = showers, 95,96,99 = thunderstorm
-        const rainCodes = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99];
-        const isRaining = rainCodes.includes(weatherCode);
-        const temp = APP.atmosphere.temperature || 20;
-        const isHot = temp > 30;
-        
-        updateWeatherUI(condition, isRaining);
-        
-        // AUTO LENS DRIP - Rain triggers water droplet effect
-        if (isRaining) {
-            enableRainAuto();
-            activateLensDrip(true);
-            if ($('weather-fx')) $('weather-fx').textContent = 'FX: LENS_DRIP (RAIN)';
-        } else {
-            disableRainAuto();
-            activateLensDrip(false);
-        }
-        
-        // AUTO HEAT HAZE - Hot weather (>30C) triggers distortion
-        if (isHot && !isRaining) {
-            activateHeatHaze(true);
-            if ($('weather-fx')) $('weather-fx').textContent = 'FX: HEAT_HAZE (' + temp + 'C)';
-        } else if (!isRaining) {
-            activateHeatHaze(false);
-            if ($('weather-fx')) $('weather-fx').textContent = 'FX: NONE';
-        }
-    }
     
-    // LENS DRIP EFFECT - Water droplets on lens during rain
-    function activateLensDrip(active) {
-        const canvas = $('lens-drip-canvas');
-        if (!canvas) return;
-        
-        APP.shaders.lensDrip.active = active;
-        canvas.classList.toggle('active', active);
-        
-        if (active && !APP.shaders.lensDrip.rafId) {
-            animateLensDrip();
-        }
-    }
     
-    function animateLensDrip() {
-        if (!APP.shaders.lensDrip.active) {
-            APP.shaders.lensDrip.rafId = null;
-            return;
-        }
-        
-        const canvas = $('lens-drip-canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const stage = $('stage');
-        if (stage) {
-            canvas.width = stage.clientWidth;
-            canvas.height = stage.clientHeight;
-        }
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const time = APP.shaders.lensDrip.time++;
-        const intensity = (APP.atmosphere.intensity || 50) / 100;
-        
-        // Draw water droplets
-        for (let i = 0; i < Math.floor(20 * intensity); i++) {
-            const x = (Math.sin(time * 0.01 + i * 1.7) * 0.4 + 0.5) * canvas.width;
-            const y = ((time * 2 + i * 70) % (canvas.height + 120)) - 60;
-            const size = 12 + Math.sin(i * 0.8) * 6;
-            
-            // Droplet with refraction
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y + size * 0.2, size);
-            gradient.addColorStop(0, 'rgba(220, 240, 255, 0.3)');
-            gradient.addColorStop(0.5, 'rgba(200, 220, 255, 0.15)');
-            gradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.ellipse(x, y, size * 0.5, size, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Highlight
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.beginPath();
-            ctx.arc(x - size * 0.15, y - size * 0.2, size * 0.12, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        APP.shaders.lensDrip.rafId = requestAnimationFrame(animateLensDrip);
-    }
     
-    // HEAT HAZE EFFECT - Thermal distortion during hot weather
-    function activateHeatHaze(active) {
-        const canvas = $('heat-haze-canvas');
-        if (!canvas) return;
-        
-        APP.shaders.heatHaze.active = active;
-        canvas.classList.toggle('active', active);
-        
-        if (active && !APP.shaders.heatHaze.rafId) {
-            animateHeatHaze();
-        }
-    }
     
-    function animateHeatHaze() {
-        if (!APP.shaders.heatHaze.active) {
-            APP.shaders.heatHaze.rafId = null;
-            return;
-        }
-        
-        const canvas = $('heat-haze-canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const stage = $('stage');
-        if (stage) {
-            canvas.width = stage.clientWidth;
-            canvas.height = stage.clientHeight;
-        }
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const time = APP.shaders.heatHaze.time++;
-        const temp = APP.atmosphere.temperature || 25;
-        const intensity = Math.min((temp - 25) / 20, 1);
-        
-        if (intensity <= 0) return;
-        
-        // Draw heat waves from bottom
-        ctx.save();
-        ctx.globalAlpha = 0.1 * intensity;
-        
-        for (let y = canvas.height; y > canvas.height * 0.4; y -= 25) {
-            const waveOffset = Math.sin(time * 0.03 + y * 0.005) * 6 * intensity;
-            const heatColor = `rgba(255, ${Math.floor(200 - (canvas.height - y) / canvas.height * 100)}, 80, ${0.08 * intensity})`;
-            
-            ctx.strokeStyle = heatColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            
-            for (let x = 0; x < canvas.width; x += 12) {
-                const wave = Math.sin(time * 0.04 + x * 0.012) * waveOffset;
-                ctx.lineTo(x, y + wave);
-            }
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-        APP.shaders.heatHaze.rafId = requestAnimationFrame(animateHeatHaze);
-    }
     
-    // Initialize shaders state
-    APP.shaders = APP.shaders || {
-        lensDrip: { active: false, time: 0, rafId: null },
-        heatHaze: { active: false, time: 0, rafId: null }
-    };
+
     
-    // Initialize satellite atmosphere on load
+    // Initialize satellite atmosphere on load (10-minute polling)
     initAtmosphere();
+    setInterval(fetchSatelliteWeather, 600000); // 10 min refresh
 
     // ========================================
     // NFT_VAULT: SCAN WALLET ASSETS
@@ -5320,186 +4835,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // DISPLACEMENT_MAP WARPING ENTIRE UI
     // ========================================
     
-    function initTrasudateEngine() {
-        const layer = $('trasudate-layer');
-        const canvas = $('trasudate-canvas');
-        
-        if (!canvas) return;
-        
-        APP.trasudate.canvas = canvas;
-        APP.trasudate.ctx = canvas.getContext('2d');
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        APP.trasudate.drops = [];
-        document.body.classList.add('trasudate-active');
-        
-        // Create initial drops
-        for (let i = 0; i < 8; i++) {
-            createTrasudateDrop(Math.random() * canvas.width, -50 - Math.random() * 200);
-        }
-        
-        // Start physics loop
-        APP.trasudate.rafId = requestAnimationFrame(trasudatePhysicsLoop);
-        log('TRASUDATE: FLUID_DYNAMICS_ONLINE');
-    }
     
-    function stopTrasudateEngine() {
-        if (APP.trasudate.rafId) {
-            cancelAnimationFrame(APP.trasudate.rafId);
-            APP.trasudate.rafId = null;
-        }
-        
-        APP.trasudate.drops = [];
-        document.body.classList.remove('trasudate-active');
-        
-        if (APP.trasudate.ctx) {
-            APP.trasudate.ctx.clearRect(0, 0, APP.trasudate.canvas.width, APP.trasudate.canvas.height);
-        }
-        
-        // Remove DOM drops
-        const layer = $('trasudate-layer');
-        layer.querySelectorAll('.trasudate-drop, .trasudate-trail').forEach(el => el.remove());
-        
-        log('TRASUDATE: OFFLINE');
-    }
     
-    function createTrasudateDrop(x, y, size = null) {
-        const drop = {
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: 0.5 + Math.random() * 1,
-            size: size || 12 + Math.random() * 25,
-            mass: 1,
-            trail: [],
-            maxTrail: 8,
-            wobble: Math.random() * Math.PI * 2,
-            wobbleSpeed: 0.05 + Math.random() * 0.05,
-            surfaceTension: APP.trasudate.physics.surfaceTension,
-            age: 0,
-            element: null
-        };
-        
-        drop.mass = drop.size / 15;
-        
-        // Create DOM element for visual
-        const el = document.createElement('div');
-        el.className = 'trasudate-drop';
-        el.style.width = drop.size + 'px';
-        el.style.height = drop.size * 1.2 + 'px';
-        el.style.left = drop.x + 'px';
-        el.style.top = drop.y + 'px';
-        $('trasudate-layer').appendChild(el);
-        drop.element = el;
-        
-        APP.trasudate.drops.push(drop);
-        return drop;
-    }
     
-    function trasudatePhysicsLoop() {
-        if (!APP.trasudate.active) return;
-        
-        const ctx = APP.trasudate.ctx;
-        const canvas = APP.trasudate.canvas;
-        const physics = APP.trasudate.physics;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Spawn new drops occasionally
-        if (APP.trasudate.drops.length < physics.maxDrops && Math.random() < 0.02) {
-            createTrasudateDrop(Math.random() * canvas.width, -30);
-        }
-        
-        // Update and render drops
-        for (let i = APP.trasudate.drops.length - 1; i >= 0; i--) {
-            const drop = APP.trasudate.drops[i];
-            
-            // Apply gravity
-            drop.vy += physics.gravity * drop.mass;
-            
-            // Apply viscosity/drag
-            drop.vx *= physics.viscosity;
-            drop.vy *= physics.viscosity;
-            
-            // Surface tension wobble
-            drop.wobble += drop.wobbleSpeed;
-            const wobbleX = Math.sin(drop.wobble) * 0.3;
-            drop.vx += wobbleX * drop.surfaceTension;
-            
-            // Update position
-            drop.x += drop.vx;
-            drop.y += drop.vy;
-            drop.age++;
-            
-            // Trail
-            drop.trail.push({ x: drop.x, y: drop.y });
-            if (drop.trail.length > drop.maxTrail) {
-                drop.trail.shift();
-            }
-            
-            // Update DOM element
-            if (drop.element) {
-                drop.element.style.left = drop.x + 'px';
-                drop.element.style.top = drop.y + 'px';
-                drop.element.style.transform = `scaleX(${1 + drop.vx * 0.1}) scaleY(${1 + drop.vy * 0.05})`;
-            }
-            
-            // Draw trail on canvas
-            if (drop.trail.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(drop.trail[0].x + drop.size/2, drop.trail[0].y + drop.size/2);
-                for (let t = 1; t < drop.trail.length; t++) {
-                    ctx.lineTo(drop.trail[t].x + drop.size/2, drop.trail[t].y + drop.size/2);
-                }
-                ctx.strokeStyle = `rgba(200, 220, 255, ${0.2 - physics.trailFade * drop.age})`;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-            
-            // Check for merging with other drops
-            for (let j = i - 1; j >= 0; j--) {
-                const other = APP.trasudate.drops[j];
-                const dx = drop.x - other.x;
-                const dy = drop.y - other.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist < physics.mergeThreshold) {
-                    // Merge drops
-                    const newSize = Math.sqrt(drop.size * drop.size + other.size * other.size);
-                    const newX = (drop.x * drop.mass + other.x * other.mass) / (drop.mass + other.mass);
-                    const newY = (drop.y * drop.mass + other.y * other.mass) / (drop.mass + other.mass);
-                    const newVx = (drop.vx * drop.mass + other.vx * other.mass) / (drop.mass + other.mass);
-                    const newVy = (drop.vy * drop.mass + other.vy * other.mass) / (drop.mass + other.mass);
-                    
-                    // Remove old elements
-                    if (drop.element) drop.element.remove();
-                    if (other.element) other.element.remove();
-                    
-                    // Remove from array
-                    APP.trasudate.drops.splice(i, 1);
-                    APP.trasudate.drops.splice(j, 1);
-                    
-                    // Create merged drop
-                    const merged = createTrasudateDrop(newX, newY, Math.min(newSize, 50));
-                    merged.vx = newVx;
-                    merged.vy = newVy;
-                    
-                    break;
-                }
-            }
-            
-            // Remove if off screen
-            if (drop.y > canvas.height + 50) {
-                if (drop.element) drop.element.remove();
-                APP.trasudate.drops.splice(i, 1);
-            }
-        }
-        
-        APP.trasudate.rafId = requestAnimationFrame(trasudatePhysicsLoop);
-    }
 
     // initHologram() REMOVED — single 3D engine lives in module script
     // Widget-layer is hidden by default; only the module btn-inject-3d activates it
@@ -5509,159 +4847,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize hologram after a short delay
     // initHologram() call REMOVED — function no longer exists
 
-    // ========================================
-    // WEBGL LENS DRIP SHADER
-    // ========================================
-    function initLensDripShader() {
-        const canvas = $('lens-drip-canvas');
-        if (!canvas) return;
-        
-        const stage = $('stage');
-        canvas.width = stage.clientWidth;
-        canvas.height = stage.clientHeight;
-        
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) { log('WEBGL_NOT_SUPPORTED'); return; }
-        
-        APP.shaders.lensDrip.canvas = canvas;
-        APP.shaders.lensDrip.gl = gl;
-        
-        // Simple drip distortion effect using 2D canvas fallback
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            APP.shaders.lensDrip.ctx = ctx;
-        }
-        
-        log('LENS_DRIP_SHADER: INITIALIZED');
-    }
     
-    function toggleLensDrip() {
-        APP.shaders.lensDrip.active = !APP.shaders.lensDrip.active;
-        $('lens-drip-canvas').classList.toggle('active', APP.shaders.lensDrip.active);
-        $('btn-lens-drip').classList.toggle('on', APP.shaders.lensDrip.active);
-        
-        if (APP.shaders.lensDrip.active) {
-            initLensDripShader();
-            animateLensDrip();
-        } else {
-            if (APP.shaders.lensDrip.rafId) cancelAnimationFrame(APP.shaders.lensDrip.rafId);
-        }
-        log('LENS_DRIP: ' + (APP.shaders.lensDrip.active ? 'ON' : 'OFF'));
-    }
     
-    function animateLensDrip() {
-        if (!APP.shaders.lensDrip.active) return;
-        
-        const canvas = APP.shaders.lensDrip.canvas;
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw drip effect
-        const time = APP.shaders.lensDrip.time++;
-        const intensity = APP.atmosphere.intensity / 100;
-        
-        for (let i = 0; i < 10 * intensity; i++) {
-            const x = Math.sin(time * 0.02 + i) * canvas.width * 0.3 + canvas.width / 2;
-            const y = (time * 2 + i * 50) % (canvas.height + 100) - 50;
-            const size = 20 + Math.sin(i) * 10;
-            
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-            gradient.addColorStop(0, 'rgba(200, 220, 255, 0.3)');
-            gradient.addColorStop(0.5, 'rgba(180, 200, 240, 0.15)');
-            gradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.ellipse(x, y, size * 0.6, size, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        APP.shaders.lensDrip.rafId = requestAnimationFrame(animateLensDrip);
-    }
-    
-    if ($('btn-lens-drip')) {
-        $('btn-lens-drip').onclick = toggleLensDrip;
-    }
-    
-    // ========================================
-    // WEBGL HEAT HAZE SHADER
-    // ========================================
-    function toggleHeatHaze() {
-        APP.shaders.heatHaze.active = !APP.shaders.heatHaze.active;
-        $('heat-haze-canvas').classList.toggle('active', APP.shaders.heatHaze.active);
-        $('btn-heat-haze').classList.toggle('on', APP.shaders.heatHaze.active);
-        
-        if (APP.shaders.heatHaze.active) {
-            initHeatHazeShader();
-            animateHeatHaze();
-        } else {
-            if (APP.shaders.heatHaze.rafId) cancelAnimationFrame(APP.shaders.heatHaze.rafId);
-        }
-        log('HEAT_HAZE: ' + (APP.shaders.heatHaze.active ? 'ON' : 'OFF'));
-    }
-    
-    function initHeatHazeShader() {
-        const canvas = $('heat-haze-canvas');
-        if (!canvas) return;
-        
-        const stage = $('stage');
-        canvas.width = stage.clientWidth;
-        canvas.height = stage.clientHeight;
-        
-        APP.shaders.heatHaze.canvas = canvas;
-        log('HEAT_HAZE_SHADER: INITIALIZED');
-    }
-    
-    function animateHeatHaze() {
-        if (!APP.shaders.heatHaze.active) return;
-        
-        const canvas = APP.shaders.heatHaze.canvas;
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const time = APP.shaders.heatHaze.time++;
-        const intensity = APP.atmosphere.heatIntensity / 100;
-        
-        // Draw heat distortion waves
-        ctx.save();
-        ctx.globalAlpha = 0.1 * intensity;
-        
-        for (let y = 0; y < canvas.height; y += 20) {
-            const wave = Math.sin(time * 0.05 + y * 0.01) * 5 * intensity;
-            ctx.strokeStyle = `rgba(255, ${200 - y/canvas.height * 100}, 100, ${0.1 * intensity})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            for (let x = 0; x < canvas.width; x += 10) {
-                ctx.lineTo(x, y + Math.sin(time * 0.1 + x * 0.02) * wave);
-            }
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-        
-        APP.shaders.heatHaze.rafId = requestAnimationFrame(animateHeatHaze);
-    }
-    
-    if ($('btn-heat-haze')) {
-        $('btn-heat-haze').onclick = toggleHeatHaze;
-    }
-    
-    // Heat intensity slider
-    if ($('sl-heat')) {
-        $('sl-heat').oninput = e => {
-            APP.atmosphere.heatIntensity = parseInt(e.target.value);
-            $('val-heat').textContent = e.target.value + '%';
-        };
-    }
+
     
     // Shatter all button
     if ($('btn-shatter-all')) {
@@ -6051,7 +5239,6 @@ function runVanguardTrack() {
     
     log(`AUDIO_SYNC: ${trackID}_STARTED`);
 }
-
 
 
 // --- INTEGRATED AUDIO DUCKING & UI CONTROLS ---
