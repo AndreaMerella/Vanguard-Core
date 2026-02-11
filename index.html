@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*.lexica.art https://lexica.art; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://lexica.art https://*.lexica.art; img-src 'self' data: blob: https://lexica.art https://*.lexica.art https://*.githubusercontent.com; media-src 'self' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob: 'unsafe-inline'; connect-src * 'unsafe-inline';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
    <title>DRIS//CORE VNGRD</title>
@@ -1658,25 +1658,41 @@ function processGhostCommand(cmd) {
     }, 200 + Math.random() * 150); 
 }
 
-// CRYPTO
+// CRYPTO — Binance API (reliable browser-side fetch)
 async function fetchCrypto() {
     try {
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${APP.crypto.ids}&vs_currencies=usd&include_24hr_change=true`);
-        const data = await res.json();
-        const html = [];
-        const syms = { bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', dogecoin: 'DOGE' };
-        ['bitcoin', 'ethereum', 'solana', 'dogecoin'].forEach(id => {
-            if(data[id]) {
-                const change = data[id].usd_24h_change;
-                const colorClass = change >= 0 ? 'tick-up' : 'tick-down';
-                const arrow = change >= 0 ? '▲' : '▼';
-                html.push(`<span>${syms[id]}: $${data[id].usd} <span class="${colorClass}">(${arrow} ${change.toFixed(2)}%)</span></span>`);
-            }
-        });
-        html.push('<span style="color:var(--accent)">WHAT HAPPENS IN THE NODES STAYS IN THE NODES</span>');
-        const finalHtml = html.join('&nbsp;&nbsp;//&nbsp;&nbsp;');
-        $('ticker-text').innerHTML = finalHtml + '&nbsp;&nbsp;//&nbsp;&nbsp;' + finalHtml; 
-    } catch(e) { $('ticker-text').innerHTML = '<span style="color:var(--r)">CONNECTION_LOST // RETRYING FEED...</span>'; }
+        const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT'];
+        const labels = { BTCUSDT: 'BTC', ETHUSDT: 'ETH', SOLUSDT: 'SOL', DOGEUSDT: 'DOGE' };
+        const prices = await Promise.all(symbols.map(s =>
+            fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + s).then(r => r.json())
+        ));
+        APP.crypto.tickerHTML = prices.map(p => {
+            const sym = labels[p.symbol] || p.symbol;
+            const price = parseFloat(p.price);
+            return `<span>${sym}: $${price < 1 ? price.toFixed(6) : price.toFixed(2)}</span>`;
+        }).join('&nbsp;&nbsp;//&nbsp;&nbsp;');
+        updateTickerCycle();
+        log('CRYPTO_FEED: BINANCE_LOCKED');
+    } catch(e) {
+        APP.crypto.tickerHTML = '<span style="color:var(--r)">CRYPTO_FEED_OFFLINE</span>';
+        updateTickerCycle();
+    }
+}
+
+// TICKER CYCLE ENGINE — [WEATHER] > [CRYPTO] > [IDENTITY]
+APP.crypto.tickerHTML = '';
+APP.ticker = { phase: 0, interval: null };
+
+function updateTickerCycle() {
+    const ticker = $('ticker-text');
+    if (!ticker) return;
+    const weatherBlock = APP.atmosphere.city !== 'UNKNOWN'
+        ? `<span style="color:var(--accent)">[LOC: ${APP.atmosphere.city}]</span>&nbsp;//&nbsp;<span>[TEMP: ${APP.atmosphere.temperature || '—'}°C]</span>&nbsp;//&nbsp;<span>[${APP.atmosphere.isRaining ? 'PRECIPITATION_DETECTED' : 'ATMOS_STABLE'}]</span>`
+        : '<span style="color:var(--text-dim)">WEATHER: ACQUIRING...</span>';
+    const cryptoBlock = APP.crypto.tickerHTML || '<span style="color:var(--text-dim)">CRYPTO: LOADING...</span>';
+    const identityBlock = '<span style="color:var(--accent)">WHAT HAPPENS IN THE NODES STAYS IN THE NODES</span>&nbsp;&nbsp;//&nbsp;&nbsp;<span style="color:var(--v)">SIGNAL_RESTORED</span>';
+    const full = weatherBlock + '&nbsp;&nbsp;//&nbsp;&nbsp;' + cryptoBlock + '&nbsp;&nbsp;//&nbsp;&nbsp;' + identityBlock;
+    ticker.innerHTML = full + '&nbsp;&nbsp;//&nbsp;&nbsp;' + full;
 }
 
 // UTILS
@@ -3161,6 +3177,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     requestAnimationFrame(renderLoop);
     updateClock(); setInterval(updateClock, 1000); morphLogo(); setTimeout(morphLogo, 4000);
+
+    // AUTO-MIDI: Probe for MIDI on load, link to seismic trigger
+    autoInitMIDI();
     
     // Wire UI
     $('btn-init-cam').onclick = initCamera; $('btn-go-live').onclick = goLive; $('btn-end').onclick = endLive; $('btn-kill').onclick = killCamera;
@@ -3623,11 +3642,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Note off handling if needed
                     }
                     
-                    // Control Change (cmd 11) - sliders/knobs - MIDI OVERRIDE
+                    // Control Change (cmd 11) - sliders/knobs
                     if (cmd === 11) {
                         const val = velocity / 127;
-                        APP.atmosphere.midiOverride = true;
-                        
+
                         // Check for learned binding
                         const binding = APP.midi.bindings['cc' + note];
                         if (binding) {
@@ -3639,9 +3657,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; $('sl-c').value = APP.vj.contrast * 100; }
                         if (note === 3 || note === 76) { APP.vj.saturation = val * 2; $('sl-s').value = APP.vj.saturation * 100; }
                         if (note === 4 || note === 77) { APP.vj.hue = val * 360; $('sl-h').value = APP.vj.hue; }
-                        // Rain/Heat via MIDI
-                        if (note === 20) { APP.atmosphere.intensity = val * 100; $('sl-atmos').value = val * 100; $('val-atmos').textContent = Math.round(val*100)+'%'; }
-                        if (note === 21) { APP.atmosphere.heatIntensity = val * 100; $('sl-heat').value = val * 100; $('val-heat').textContent = Math.round(val*100)+'%'; }
+                        // CC 20/21 — reserved (weather FX stripped)
                     }
                     
                     // Pitch Bend - control hue
@@ -3700,6 +3716,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         container.innerHTML = bindings.map(([key, val]) => `${key}:${val.target}`).join(' | ');
+    }
+
+    // --- AUTO-MIDI INIT: Probe on load, link to seismic ---
+    async function autoInitMIDI() {
+        if (!navigator.requestMIDIAccess) {
+            log('MIDI_PROBE: NOT_SUPPORTED');
+            return;
+        }
+        try {
+            const midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+            const inputs = Array.from(midiAccess.inputs.values());
+            if (inputs.length === 0) {
+                log('MIDI_PROBE: NO_DEVICES');
+                return;
+            }
+            APP.midi.access = midiAccess;
+            APP.midi.inputs = [];
+            APP.midi.outputs = [];
+
+            log('MIDI_AUTO: ' + inputs.length + ' DEVICE(S) DETECTED');
+            $('btn-midi').classList.add('on');
+            $('btn-midi').textContent = 'MIDI ACTIVE';
+            $('midi-status').textContent = inputs[0].name;
+            $('midi-status').style.color = 'var(--g)';
+            if ($('midi-dot')) $('midi-dot').classList.remove('off');
+
+            inputs.forEach(input => {
+                APP.midi.inputs.push(input);
+                input.onmidimessage = (msg) => {
+                    const [status, note, velocity] = msg.data;
+                    const cmd = status >> 4;
+
+                    // MIDI LEARN passthrough
+                    if (APP.midi.learnMode && APP.midi.learnTarget && velocity > 0) {
+                        const key = (cmd === 11) ? 'cc' + note : 'note' + note;
+                        APP.midi.bindings[key] = {
+                            element: APP.midi.learnTarget.element,
+                            target: APP.midi.learnTarget.target,
+                            type: (cmd === 11) ? 'cc' : 'note'
+                        };
+                        APP.midi.learnTarget.element.classList.add('midi-bound');
+                        APP.midi.learnTarget.element.style.outline = '';
+                        updateMidiBindingsDisplay();
+                        log('MIDI_BOUND: ' + key + ' -> ' + APP.midi.learnTarget.target);
+                        APP.midi.learnTarget = null;
+                        return;
+                    }
+
+                    // Note On → SEISMIC + hologram punch
+                    if (cmd === 9 && velocity > 0) {
+                        if (APP.midi.passthrough) playSynthNote(note, velocity);
+                        const binding = APP.midi.bindings['note' + note];
+                        if (binding) triggerMidiBinding(binding, velocity);
+                        const intensity = velocity / 127;
+
+                        // Low notes → seismic shake + hologram punch
+                        if (note < 48) {
+                            const shake = intensity * 30;
+                            document.body.classList.add('seismic-active');
+                            document.body.style.transform = `translate(${(Math.random()-0.5)*shake}px, ${(Math.random()-0.5)*shake}px)`;
+                            setTimeout(() => { document.body.style.transform = ''; document.body.classList.remove('seismic-active'); }, 100);
+                            if (APP.hologram) APP.hologram.targetScale = 1.0 + intensity;
+                        }
+
+                        // High-vel triggers
+                        if (velocity > 80) {
+                            if (note >= 60 && note < 64) impactStutter();
+                            else if (note >= 64 && note < 68) impactInvert();
+                            else if (note >= 68 && note < 72) impactCrush();
+                            else if (note >= 72) { rotateMedia(); triggerImpact(); }
+                        }
+                        if (APP.hologram && note >= 48) APP.hologram.targetScale = 1.0 + intensity * 0.5;
+                        if (note >= 36 && note <= 40) setTheme(['cyan','magenta','green','purple','gold'][note - 36]);
+                    }
+
+                    // CC → VJ sliders
+                    if (cmd === 11) {
+                        const val = velocity / 127;
+                        const binding = APP.midi.bindings['cc' + note];
+                        if (binding) triggerMidiCCBinding(binding, val);
+                        if (note === 1 || note === 74) { APP.vj.brightness = 0.5 + val; $('sl-b').value = APP.vj.brightness * 100; $('val-b').textContent = Math.round(APP.vj.brightness*100)+'%'; }
+                        if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; $('sl-c').value = APP.vj.contrast * 100; }
+                        if (note === 3 || note === 76) { APP.vj.saturation = val * 2; $('sl-s').value = APP.vj.saturation * 100; }
+                        if (note === 4 || note === 77) { APP.vj.hue = val * 360; $('sl-h').value = APP.vj.hue; }
+                    }
+
+                    // Pitch bend → hue
+                    if (cmd === 14) {
+                        const bend = ((velocity << 7) | note) - 8192;
+                        APP.vj.hue = (bend / 8192) * 180 + 180;
+                    }
+                };
+            });
+
+            Array.from(midiAccess.outputs.values()).forEach(o => APP.midi.outputs.push(o));
+            log('MIDI_AUTO: SIGNAL_RESTORED');
+        } catch (e) {
+            log('MIDI_PROBE_FAIL: ' + e.message);
+        }
     }
 
     // --- WebXR VR MODE ---
@@ -4649,46 +4764,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Update bottom ticker with location and METAR
-  function updateTickerWithMetar() {
-    const ticker = $('ticker-text');
-    if (ticker && APP.atmosphere.city) {
-        // This line forces the ticker to use the ACTUAL data fetched from the API
-        const city = APP.atmosphere.city;
-        const temp = APP.atmosphere.temperature;
-        const status = APP.atmosphere.isRaining ? "PRECIPITATION_DETECTED" : "ATMOS_STABLE";
-        
-        ticker.innerHTML = `[LOC: ${city}] // [TEMP: ${temp}°C] // [SYSTEM: ${status}] // [SAT_LINK: 100%]`;
-        
-        // This is the "Truth" log
-        log(`REAL_TIME_SYNC: ${city} @ ${temp}°C`);
+    // Update ticker with fresh weather data (feeds into cycle engine)
+    function updateTickerWithMetar() {
+        updateTickerCycle();
+        if (APP.atmosphere.city) log(`REAL_TIME_SYNC: ${APP.atmosphere.city} @ ${APP.atmosphere.temperature}°C`);
     }
-}
     
 
     
     
     
     
-    // Update weather UI status displays
+    // Update weather UI status displays (data only, no FX)
     function updateWeatherUI(condition, isRaining) {
         const weatherStatus = $('weather-status');
-        const rainStatus = $('rain-status');
         const atmosDot = $('atmos-dot');
-        
         if (weatherStatus) weatherStatus.textContent = 'WEATHER: ' + condition.toUpperCase();
-        
-        if (rainStatus) {
-            if (isRaining) {
-                rainStatus.textContent = 'RAIN: AUTO_ENABLED';
-                rainStatus.style.color = 'var(--c)';
-            } else {
-                rainStatus.textContent = 'RAIN: AUTO_DISABLED';
-                rainStatus.style.color = 'var(--text-dim)';
-            }
-        }
-        
         if (atmosDot) atmosDot.classList.toggle('off', !isRaining);
+        if ($('weather-fx')) $('weather-fx').textContent = isRaining ? 'RAIN_DETECTED (DATA ONLY)' : 'CLEAR (DATA ONLY)';
     }
     
 
