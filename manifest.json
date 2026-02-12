@@ -1,10 +1,11 @@
 {
-  "name": "VNGRD // CORE",
+  "name": "VNGRD // HYBRID WORKSTATION",
   "short_name": "VNGRD",
-  "start_url": "./indexbackup.html",
+  "start_url": "/Vanguard-Core/index.html",
+  "scope": "/Vanguard-Core/",
   "display": "standalone",
   "background_color": "#0a0a0e",
-  "theme_color": "#0a0a0e",
+  "theme_color": "#00f3ff",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/7133/7133312.png",
