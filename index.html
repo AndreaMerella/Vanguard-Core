@@ -1223,11 +1223,11 @@ body.shooting-mode #btn-shooting {
         </div>
         
         <div class="section">
-            <div class="sec-head"><span class="sec-title">LEXICA_NANO</span><div class="sec-dot off" id="neural-dot"></div></div>
+            <div class="sec-head"><span class="sec-title">V19_NEURAL</span><div class="sec-dot off" id="neural-dot"></div></div>
             <div class="sec-body">
                 <input type="text" class="inp" id="ai-prompt" placeholder="DESCRIBE_IMAGE..." style="font-size:9px;">
-                <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">LEXICA GENERATE</button>
-                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">LEXICA_API: READY</div>
+                <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">GENERATE (SMOOTH)</button>
+                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: LEXICA + POLLINATIONS</div>
             </div>
         </div>
         
@@ -2973,22 +2973,7 @@ $('btn-psychosis').onclick = () => {
     }, 50);
 };
 
-$('btn-mask-mode').onclick = () => { APP.vj.maskMode = !APP.vj.maskMode; $('btn-mask-mode').classList.toggle('on'); log(`MASK_MODE: ${APP.vj.maskMode ? 'ON' : 'OFF'}`); };
-$('btn-reset').onclick = () => {
-    APP.vj.brightness = 1.0; $('sl-b').value = 100; $('val-b').textContent = '100%';
-    APP.vj.contrast = 1.0; $('sl-c').value = 100; $('val-c').textContent = '100%';
-    APP.vj.saturation = 1.0; $('sl-s').value = 100; $('val-s').textContent = '100%';
-    APP.vj.hue = 0; $('sl-h').value = 0; $('val-h').textContent = '0°';
-    APP.vj.trailsEnabled = false; $('btn-trails').classList.remove('on');
-    APP.vj.rgbEnabled = false; $('btn-rgb').classList.remove('on');
-    APP.vj.pixelateEnabled = false; $('btn-pixelate').classList.remove('on');
-    APP.vj.pixelSize = 1; $('sl-pix').value = 1; $('val-pix').textContent = '1';
-    APP.vj.rgbIntensity = 0; $('sl-rgb').value = 0; $('val-rgb').textContent = '0';
-    APP.vj.maskMode = false; $('btn-mask-mode').classList.remove('on');
-    document.body.classList.remove('vhs', 'crt', 'system-failure'); 
-    $('btn-vhs').classList.remove('on'); $('btn-crt').classList.remove('on');
-    log('FX_RESET_ONLY');
-};
+// Legacy btn-reset/btn-mask-mode removed — resetAllFX() handles all FX clearing
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3667,13 +3652,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         
                         // Default CC mappings
-                        if (note === 1 || note === 74) { APP.vj.brightness = 0.5 + val; $('sl-b').value = APP.vj.brightness * 100; $('val-b').textContent = Math.round(APP.vj.brightness*100)+'%'; }
-                        if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; $('sl-c').value = APP.vj.contrast * 100; }
-                        if (note === 3 || note === 76) { APP.vj.saturation = val * 2; $('sl-s').value = APP.vj.saturation * 100; }
-                        if (note === 4 || note === 77) { APP.vj.hue = val * 360; $('sl-h').value = APP.vj.hue; }
+                        if (note === 1 || note === 74) { APP.vj.brightness = 0.5 + val; if ($('sl-b')) $('sl-b').value = APP.vj.brightness * 100; }
+                        if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; if ($('sl-c')) $('sl-c').value = APP.vj.contrast * 100; }
+                        if (note === 3 || note === 76) { APP.vj.saturation = val * 2; if ($('sl-s')) $('sl-s').value = APP.vj.saturation * 100; }
+                        if (note === 4 || note === 77) { APP.vj.hue = val * 360; if ($('sl-h')) $('sl-h').value = APP.vj.hue; }
                         // CC 20/21 — reserved (weather FX stripped)
                     }
-                    
+
                     // Pitch Bend - control hue
                     if (cmd === 14) {
                         const bend = ((velocity << 7) | note) - 8192;
@@ -3681,7 +3666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 };
             });
-            
+
             // Store outputs
             outputs.forEach(output => APP.midi.outputs.push(output));
             
@@ -3810,10 +3795,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const val = velocity / 127;
                         const binding = APP.midi.bindings['cc' + note];
                         if (binding) triggerMidiCCBinding(binding, val);
-                        if (note === 1 || note === 74) { APP.vj.brightness = 0.5 + val; $('sl-b').value = APP.vj.brightness * 100; $('val-b').textContent = Math.round(APP.vj.brightness*100)+'%'; }
-                        if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; $('sl-c').value = APP.vj.contrast * 100; }
-                        if (note === 3 || note === 76) { APP.vj.saturation = val * 2; $('sl-s').value = APP.vj.saturation * 100; }
-                        if (note === 4 || note === 77) { APP.vj.hue = val * 360; $('sl-h').value = APP.vj.hue; }
+                        if (note === 1 || note === 74) { APP.vj.brightness = 0.5 + val; if ($('sl-b')) $('sl-b').value = APP.vj.brightness * 100; }
+                        if (note === 2 || note === 71) { APP.vj.contrast = 0.5 + val; if ($('sl-c')) $('sl-c').value = APP.vj.contrast * 100; }
+                        if (note === 3 || note === 76) { APP.vj.saturation = val * 2; if ($('sl-s')) $('sl-s').value = APP.vj.saturation * 100; }
+                        if (note === 4 || note === 77) { APP.vj.hue = val * 360; if ($('sl-h')) $('sl-h').value = APP.vj.hue; }
                     }
 
                     // Pitch bend → hue
@@ -4857,82 +4842,120 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ========================================
-    // NEURAL_INJECT: AI IMAGE GENERATION
+    // v19 FEATURE PACK: TRANSITIONS + WALLET + AI
     // ========================================
-   document.getElementById('btn-generate-ai').onclick = async () => {
-    // 1. SETUP & VALIDATION
-    const promptInput = document.getElementById('ai-prompt');
-    const status = document.getElementById('ai-status');
-    const btn = document.getElementById('btn-generate-ai');
-    
-    const prompt = promptInput.value.trim();
 
-    if (!prompt) {
-        status.textContent = 'ENTER_PROMPT';
-        return;
-    }
-
-    // Prevent double-clicking
-    if (window.APP.neural.generating) return;
-
-    // 2. LOCK UI
-    window.APP.neural.generating = true;
-    status.textContent = 'CONTACTING_LEXICA...';
-    status.style.color = 'var(--v)';
-    btn.classList.add('on');
-
-    try {
-        // 3. FETCH LIST FROM LEXICA
-        // We use the public Lexica API to find a high-quality match
-        const searchUrl = `https://lexica.art/api/v1/search?q=${encodeURIComponent(prompt)}`;
-        const response = await fetch(searchUrl);
-        const data = await response.json();
-
-        if (!data.images || data.images.length === 0) throw new Error("NO_RESULTS");
-
-        // 4. SECURE PROXY DOWNLOAD
-        // We download the image as a BLOB to bypass the "Tainted Canvas" security block
-        status.textContent = 'DOWNLOADING_TO_DECK...';
-        const targetImage = data.images[0];
-        
-        const imgResponse = await fetch(targetImage.src);
-        const blob = await imgResponse.blob();
-
-        // 5. CREATE VIRTUAL FILE
-        // This converts the blob into a "File" object, tricking the Media Deck
-        // into thinking you uploaded it from your hard drive.
-        const virtualFile = new File([blob], `AI_${Date.now()}.jpg`, { type: "image/jpeg" });
-
-        // 6. INJECT INTO ROTATION
-        if (window.APP.media && window.APP.media.handleFileUpload) {
-            // Adds to playlist, auto-plays, and applies FX
-            await window.APP.media.handleFileUpload(virtualFile);
-            
-            status.textContent = 'ADDED_TO_ROTATION';
-            status.style.color = 'var(--g)';
-            console.log("VGD_AI: Image successfully injected into Media Deck.");
-        } else {
-            // Fallback: Direct injection if Media Deck is missing
-            console.warn("VGD_AI: Media Deck not found. Injecting directly to canvas.");
-            const safeUrl = URL.createObjectURL(blob);
-            const img = new Image();
-            img.onload = () => {
-                const ctx = document.getElementById('main-canvas').getContext('2d');
-                ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
-            };
-            img.src = safeUrl;
+    // v19 SMOOTH TRANSITIONS — crossfade layers for AI/media swap
+    const v19_Transitions = {
+        init: () => {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .vngrd-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background-size: cover; background-position: center;
+                    transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+                    opacity: 0; z-index: 1; pointer-events: none; }
+                .vngrd-layer.active { opacity: 1; z-index: 2; }
+            `;
+            document.head.appendChild(style);
+            log('V19_TRANSITIONS: ONLINE');
+        },
+        swap: (imgUrl) => {
+            const stage = $('stage');
+            if (!stage) return;
+            const active = stage.querySelector('.vngrd-layer.active');
+            const next = document.createElement('div');
+            next.className = 'vngrd-layer';
+            next.style.backgroundImage = `url('${imgUrl}')`;
+            stage.appendChild(next);
+            void next.offsetWidth;
+            next.classList.add('active');
+            if (active) {
+                active.classList.remove('active');
+                setTimeout(() => active.remove(), 1600);
+            }
         }
+    };
 
-    } catch (e) {
-        console.error("AI_FAIL:", e);
-        status.textContent = 'GENERATION_FAILED';
-        status.style.color = 'var(--r)';
-    } finally {
-        // 7. UNLOCK UI
-        window.APP.neural.generating = false;
-        btn.classList.remove('on');
+    // v19 WALLET — bridges to existing wallet-badge handler
+    const v19_Wallet = {
+        connect: async () => {
+            if (window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const wallet = accounts[0];
+                    log('V19_WEB3: CONNECTED >> ' + wallet);
+                    const badge = $('wallet-badge');
+                    if (badge) {
+                        badge.innerHTML = `<span class="dot" style="background:var(--g);box-shadow:0 0 6px var(--g)"></span>${wallet.substring(0,6)}...`;
+                        badge.style.color = 'var(--g)'; badge.style.borderColor = 'var(--g)';
+                    }
+                    return wallet;
+                } catch (e) { log('V19_WEB3: USER_DENIED'); }
+            } else { log('V19_WEB3: NO_ETHEREUM_PROVIDER'); }
+        }
+    };
+
+    // v19 AI GENERATOR — Pollinations fallback + Lexica primary, with smooth transition
+    const v19_AI = {
+        generate: async (prompt) => {
+            const status = $('ai-status');
+            const btn = $('btn-generate-ai');
+            if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
+            if (APP.neural.generating) return;
+            APP.neural.generating = true;
+            if (status) { status.textContent = 'GENERATING...'; status.style.color = 'var(--v)'; }
+            if (btn) btn.classList.add('on');
+            log('V19_AI: GENERATING >> ' + prompt);
+
+            try {
+                // Primary: Lexica search + blob proxy
+                const res = await fetch('https://lexica.art/api/v1/search?q=' + encodeURIComponent(prompt));
+                const data = await res.json();
+                if (data.images && data.images.length > 0) {
+                    const pick = data.images[Math.floor(Math.random() * Math.min(10, data.images.length))];
+                    const imgRes = await fetch(pick.src || pick.srcSmall);
+                    const blob = await imgRes.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    // Smooth transition into stage
+                    v19_Transitions.swap(blobUrl);
+                    // Also inject into media deck for canvas rendering
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = blobUrl;
+                    await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
+                    APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
+                    APP.media.currentIndex = APP.media.queue.length - 1;
+                    APP.media.currentElement = img;
+                    if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
+                    log('V19_AI: LEXICA_COMPLETE');
+                } else {
+                    // Fallback: Pollinations
+                    const seed = Math.floor(Math.random() * 9999);
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
+                    v19_Transitions.swap(url);
+                    if (status) { status.textContent = 'POLLINATIONS_FALLBACK'; status.style.color = 'var(--o)'; }
+                    log('V19_AI: POLLINATIONS_FALLBACK');
+                }
+            } catch (e) {
+                log('V19_AI: FAIL >> ' + e.message);
+                if (status) { status.textContent = 'GENERATION_FAILED'; status.style.color = 'var(--r)'; }
+            } finally {
+                APP.neural.generating = false;
+                if (btn) btn.classList.remove('on');
+            }
+        }
+    };
+
+    // Init v19 transitions CSS
+    v19_Transitions.init();
+
+    // Wire AI generate button to v19_AI
+    if ($('btn-generate-ai')) {
+        $('btn-generate-ai').onclick = () => {
+            const prompt = $('ai-prompt') ? $('ai-prompt').value.trim() : '';
+            v19_AI.generate(prompt);
+        };
     }
-};
 
     // --- DRAG INITIALIZATION (mid-script) ---
     makeLogSafeDraggable($('sys-log'));
