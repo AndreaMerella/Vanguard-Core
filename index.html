@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob: 'unsafe-inline'; connect-src * 'unsafe-inline';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -5440,6 +5442,13 @@ document.addEventListener('click', (e) => {
     if (id === 'btn-end' || id === 'btn-end-live' || id === 'btn-kill') applyAudioDuck(false);
 }, true);
 
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("VGD_SYSTEM: PWA_ACTIVE"))
+      .catch(err => console.log("VGD_SYSTEM: PWA_OFFLINE", err));
+  }
 </script>
 </body>
 </html> 
