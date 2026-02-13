@@ -5486,10 +5486,10 @@ document.addEventListener('click', (e) => {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log("VGD_SYSTEM: PWA_ACTIVE"))
-      .catch(err => console.log("VGD_SYSTEM: PWA_OFFLINE", err));
-  }
+    navigator.serviceWorker.register('sw.js').then(reg => {
+        console.log('VGD_SYSTEM: PWA_ACTIVE // CACHE: ' + CACHE_NAME);
+    });
+}
 </script>
 </body>
 </html> 
