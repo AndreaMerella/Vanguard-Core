@@ -1227,7 +1227,7 @@ body.shooting-mode #btn-shooting {
             <div class="sec-body">
                 <input type="text" class="inp" id="ai-prompt" placeholder="DESCRIBE_IMAGE..." style="font-size:9px;">
                 <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">GENERATE (SMOOTH)</button>
-                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: LEXICA + POLLINATIONS</div>
+                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: POLLINATIONS (CORS-SAFE)</div>
             </div>
         </div>
         
@@ -4908,34 +4908,31 @@ document.addEventListener('DOMContentLoaded', () => {
             log('V19_AI: GENERATING >> ' + prompt);
 
             try {
-                // Primary: Lexica search + blob proxy
-                const res = await fetch('https://lexica.art/api/v1/search?q=' + encodeURIComponent(prompt));
-                const data = await res.json();
-                if (data.images && data.images.length > 0) {
-                    const pick = data.images[Math.floor(Math.random() * Math.min(10, data.images.length))];
-                    const imgRes = await fetch(pick.src || pick.srcSmall);
-                    const blob = await imgRes.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    // Smooth transition into stage
-                    v19_Transitions.swap(blobUrl);
-                    // Also inject into media deck for canvas rendering
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.src = blobUrl;
-                    await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
-                    APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
-                    APP.media.currentIndex = APP.media.queue.length - 1;
-                    APP.media.currentElement = img;
-                    if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
-                    log('V19_AI: LEXICA_COMPLETE');
-                } else {
-                    // Fallback: Pollinations
-                    const seed = Math.floor(Math.random() * 9999);
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
-                    v19_Transitions.swap(url);
-                    if (status) { status.textContent = 'POLLINATIONS_FALLBACK'; status.style.color = 'var(--o)'; }
-                    log('V19_AI: POLLINATIONS_FALLBACK');
-                }
+                // Pollinations.ai — CORS-friendly, no API key required
+                const seed = Math.floor(Math.random() * 9999);
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
+                if (status) status.textContent = 'POLLINATIONS: RENDERING...';
+
+                // Preload as blob for canvas-safe injection (no taint)
+                const imgRes = await fetch(pollinationsUrl);
+                const blob = await imgRes.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                // Smooth transition overlay on stage
+                v19_Transitions.swap(blobUrl);
+
+                // Inject into media deck for canvas renderLoop
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = blobUrl;
+                await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
+                APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
+                APP.media.currentIndex = APP.media.queue.length - 1;
+                APP.media.currentElement = img;
+
+                if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
+                if ($('neural-dot')) $('neural-dot').classList.remove('off');
+                log('V19_AI: POLLINATIONS_COMPLETE');
             } catch (e) {
                 log('V19_AI: FAIL >> ' + e.message);
                 if (status) { status.textContent = 'GENERATION_FAILED'; status.style.color = 'var(--r)'; }
