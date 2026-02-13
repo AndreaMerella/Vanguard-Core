@@ -1229,7 +1229,7 @@ body.shooting-mode #btn-shooting {
             <div class="sec-body">
                 <input type="text" class="inp" id="ai-prompt" placeholder="DESCRIBE_IMAGE..." style="font-size:9px;">
                 <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">GENERATE (SMOOTH)</button>
-                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: POLLINATIONS (CORS-SAFE)</div>
+                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: LEXICA + POLLINATIONS</div>
             </div>
         </div>
         
@@ -4898,84 +4898,66 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // v19 AI GENERATOR — Pollinations fallback + Lexica primary, with smooth transition
-    /* --- V19 NEURAL ENGINE (STABLE BUILD) --- */
-const v19_AI = {
-    generate: async (prompt) => {
-        const status = $('ai-status');
-        const btn = $('btn-generate-ai');
-        const prog = $('ai-prog'); 
-        const fill = $('ai-fill'); 
-        
-        // 1. Initialize & Lock
-        if (!APP.neural) APP.neural = { generating: false };
-        if (!prompt || APP.neural.generating) { 
-            if (status && !prompt) status.textContent = 'ENTER_PROMPT'; 
-            return; 
-        }
-        
-        APP.neural.generating = true;
+    const v19_AI = {
+        generate: async (prompt) => {
+            const status = $('ai-status');
+            const btn = $('btn-generate-ai');
+            if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
+            if (APP.neural.generating) return;
+            APP.neural.generating = true;
+            if (status) { status.textContent = 'GENERATING...'; status.style.color = 'var(--v)'; }
+            if (btn) btn.classList.add('on');
+            log('V19_AI: GENERATING >> ' + prompt);
 
-        // 2. UI Activation
-        if (prog) prog.style.display = 'block'; 
-        if (fill) fill.style.width = '15%'; // Quick feedback start
-        if (status) { status.textContent = 'NEURAL_SYNCING...'; status.style.color = '#bf00ff'; }
-        if (btn) btn.classList.add('on');
-        
-        log('V19_AI: GENERATING >> ' + prompt);
-
-        // 3. Direct URL Construction (Bypasses fetch 530/CORS errors)
-        const seed = Math.floor(Math.random() * 99999);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + ", cinematic, 8k")}?seed=${seed}&width=1280&height=720&nologo=true`;
-
-        // 4. Kinetic Preload
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; 
-        img.src = url;
-        
-        // Fake mid-way progress while server thinks
-        setTimeout(() => { if(fill) fill.style.width = '60%'; }, 500);
-
-        img.onload = () => {
-            if (fill) fill.style.width = '100%';
-            
-            // Trigger V19 Transition
-            if (typeof v19_Transitions !== 'undefined') v19_Transitions.swap(url);
-            
-            // Sync with VJ Media Deck (for canvas recordings)
-            if (APP.media && APP.media.queue) {
-                APP.media.queue.push({ type: 'image', url: url, element: img, name: 'AI_' + Date.now() });
-                APP.media.currentIndex = APP.media.queue.length - 1; 
-                APP.media.currentElement = img;
-            }
-            
-            if (status) { status.textContent = 'RENDER_COMPLETE'; status.style.color = '#0f0'; }
-            if ($('neural-dot')) $('neural-dot').classList.remove('off');
-
-            // 5. Cleanup and Auto-Hide Bar
-            setTimeout(() => {
-                if (prog) prog.style.display = 'none';
+            try {
+                // Primary: Lexica search + blob proxy
+                const res = await fetch('https://lexica.art/api/v1/search?q=' + encodeURIComponent(prompt));
+                const data = await res.json();
+                if (data.images && data.images.length > 0) {
+                    const pick = data.images[Math.floor(Math.random() * Math.min(10, data.images.length))];
+                    const imgRes = await fetch(pick.src || pick.srcSmall);
+                    const blob = await imgRes.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    // Smooth transition into stage
+                    v19_Transitions.swap(blobUrl);
+                    // Also inject into media deck for canvas rendering
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = blobUrl;
+                    await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
+                    APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
+                    APP.media.currentIndex = APP.media.queue.length - 1;
+                    APP.media.currentElement = img;
+                    if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
+                    log('V19_AI: LEXICA_COMPLETE');
+                } else {
+                    // Fallback: Pollinations
+                    const seed = Math.floor(Math.random() * 9999);
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
+                    v19_Transitions.swap(url);
+                    if (status) { status.textContent = 'POLLINATIONS_FALLBACK'; status.style.color = 'var(--o)'; }
+                    log('V19_AI: POLLINATIONS_FALLBACK');
+                }
+            } catch (e) {
+                log('V19_AI: FAIL >> ' + e.message);
+                if (status) { status.textContent = 'GENERATION_FAILED'; status.style.color = 'var(--r)'; }
+            } finally {
                 APP.neural.generating = false;
                 if (btn) btn.classList.remove('on');
-            }, 1000);
-        };
+            }
+        }
+    };
 
-        img.onerror = () => {
-            log('V19_AI: FAIL');
-            if (status) { status.textContent = 'NEURAL_TIMEOUT'; status.style.color = '#f00'; }
-            if (prog) prog.style.display = 'none';
-            APP.neural.generating = false;
-            if (btn) btn.classList.remove('on');
+    // Init v19 transitions CSS
+    v19_Transitions.init();
+
+    // Wire AI generate button to v19_AI
+    if ($('btn-generate-ai')) {
+        $('btn-generate-ai').onclick = () => {
+            const prompt = $('ai-prompt') ? $('ai-prompt').value.trim() : '';
+            v19_AI.generate(prompt);
         };
     }
-};
-
-// Wiring (Fixed for your indexbackup.html logic)
-if ($('btn-generate-ai')) {
-    $('btn-generate-ai').onclick = () => {
-        const p = $('ai-prompt');
-        if (p) v19_AI.generate(p.value.trim());
-    };
-}
 
     // --- DRAG INITIALIZATION (mid-script) ---
     makeLogSafeDraggable($('sys-log'));
@@ -5486,10 +5468,10 @@ document.addEventListener('click', (e) => {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-        console.log('VGD_SYSTEM: PWA_ACTIVE // CACHE: ' + CACHE_NAME);
-    });
-}
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("VGD_SYSTEM: PWA_ACTIVE"))
+      .catch(err => console.log("VGD_SYSTEM: PWA_OFFLINE", err));
+  }
 </script>
 </body>
 </html> 
