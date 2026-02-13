@@ -233,6 +233,7 @@
             text-shadow: none;
         }
         
+        /* V29 MANUAL LAYER ELEMENTS */
        /* --- V29 INDUSTRIAL OVERRIDE (NO GLOW) --- */
  #station-bug { 
             position: absolute; top: 30px; left: 30px; z-index: 2600; 
@@ -841,6 +842,7 @@ body.shooting-mode #btn-shooting {
         body > *:not(#portrait-lock) { display: none !important; }
     }
 
+    /* LANDSCAPE MOBILE — 1:1 desktop parity (full UI mirrored) */
     /* LANDSCAPE MOBILE — 1:1 desktop mirror, full UI, 0→1 coords intact */
     @media (max-width: 1024px) and (orientation: landscape) {
         html, body { font-size: 10px; }
@@ -1223,20 +1225,13 @@ body.shooting-mode #btn-shooting {
         </div>
         
         <div class="section">
-    <div class="sec-head">
-       <div class="section">
-    <div class="sec-head"><span class="sec-title">V19_NEURAL</span><div class="sec-dot off" id="neural-dot"></div></div>
-    <div class="sec-body">
-        <input type="text" class="inp" id="ai-prompt" placeholder="DESCRIBE_IMAGE..." style="font-size:9px;">
-        <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">GENERATE (SMOOTH)</button>
-        
-        <div id="ai-prog" style="display:none; height:2px; background:rgba(255,255,255,0.1); margin-top:5px;">
-            <div id="ai-fill" style="height:100%; width:0%; background:var(--v); transition: width 0.4s ease;"></div>
+            <div class="sec-head"><span class="sec-title">V19_NEURAL</span><div class="sec-dot off" id="neural-dot"></div></div>
+            <div class="sec-body">
+                <input type="text" class="inp" id="ai-prompt" placeholder="DESCRIBE_IMAGE..." style="font-size:9px;">
+                <button class="btn" id="btn-generate-ai" style="color:var(--v);border-color:var(--v);">GENERATE (SMOOTH)</button>
+                <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: LEXICA + POLLINATIONS</div>
+            </div>
         </div>
-
-        <div id="ai-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;">V19_AI: READY</div>
-    </div>
-</div>
         
         <div class="section">
             <div class="sec-head"><span class="sec-title">P2P_E2E_CALL</span><div class="sec-dot off" id="guest-dot"></div></div>
@@ -1431,7 +1426,8 @@ const APP = {
         scale: 1.0, rotationSpeed: 0.01,
         targetScale: 1.0
     },
-  
+    // LEXICA_NANO
+    neural: { generating: false, lastImage: null }
 };
 
 // GHOST TERMINAL
@@ -4495,7 +4491,7 @@ document.addEventListener('DOMContentLoaded', () => {
         log('CALL_ENDED');
     };
 
-   
+    // ========================================
     // ========================================
     // PRO-AUDIO: 48KHZ RAW DIRECT PATH
     // NO ECHO/NOISE PROCESSING
@@ -4774,6 +4770,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTickerCycle();
         if (APP.atmosphere.city) log(`REAL_TIME_SYNC: ${APP.atmosphere.city} @ ${APP.atmosphere.temperature}°C`);
     }
+    
+
+    
+    
+    
+    
     // Update weather UI status displays (data only, no FX)
     function updateWeatherUI(condition, isRaining) {
         const weatherStatus = $('weather-status');
@@ -4782,7 +4784,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (atmosDot) atmosDot.classList.toggle('off', !isRaining);
         if ($('weather-fx')) $('weather-fx').textContent = isRaining ? 'RAIN_DETECTED (DATA ONLY)' : 'CLEAR (DATA ONLY)';
     }
-     // Initialize satellite atmosphere on load (10-minute polling)
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+
+    
+    // Initialize satellite atmosphere on load (10-minute polling)
     initAtmosphere();
     setInterval(fetchSatelliteWeather, 600000); // 10 min refresh
 
@@ -4882,83 +4896,69 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { log('V19_WEB3: NO_ETHEREUM_PROVIDER'); }
         }
     };
-/* --- V19 NEURAL ENGINE (WITH AUTO-HIDE PROGRESS) --- */
-/* --- V19 NEURAL ENGINE (CONSOLIDATED & STABLE) --- */
-const v19_AI = {
-    generate: async (prompt) => {
-        const status = $('ai-status');
-        const btn = $('btn-generate-ai') || $('btn-gen-ai');
-        const prog = $('ai-prog'); 
-        const fill = $('ai-fill'); 
-        
-        // 1. Initialize State
-        if (!APP.neural) APP.neural = { generating: false };
-        if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
-        if (APP.neural.generating) return;
-        
-        APP.neural.generating = true;
 
-        // 2. UI Start State
-        if (prog) prog.style.display = 'block'; 
-        if (fill) fill.style.width = '0%';
-        if (status) { status.textContent = 'NEURAL_PROCESSING...'; status.style.color = '#bf00ff'; }
-        if (btn) btn.classList.add('on');
-        
-        log('V19_AI: GENERATING >> ' + prompt);
+    // v19 AI GENERATOR — Pollinations fallback + Lexica primary, with smooth transition
+    const v19_AI = {
+        generate: async (prompt) => {
+            const status = $('ai-status');
+            const btn = $('btn-generate-ai');
+            if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
+            if (APP.neural.generating) return;
+            APP.neural.generating = true;
+            if (status) { status.textContent = 'GENERATING...'; status.style.color = 'var(--v)'; }
+            if (btn) btn.classList.add('on');
+            log('V19_AI: GENERATING >> ' + prompt);
 
-        // Simulated initial progress for feedback
-        setTimeout(() => { if(fill) fill.style.width = '35%'; }, 100);
-
-        const seed = Math.floor(Math.random() * 9999);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + ", cinematic, 8k")}?seed=${seed}&width=1280&height=720&nologo=true`;
-
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; 
-        img.src = url;
-        
-        img.onload = () => {
-            // 3. UI Completion
-            if (fill) fill.style.width = '100%';
-            
-            if (typeof v19_Transitions !== 'undefined') v19_Transitions.swap(url);
-            
-            if (APP.media && APP.media.queue) {
-                APP.media.queue.push({ type: 'image', url: url, element: img, name: 'AI_' + Date.now() });
-                APP.media.currentIndex = APP.media.queue.length - 1; 
-                APP.media.currentElement = img;
-            }
-            
-            if (status) { status.textContent = 'RENDER_COMPLETE'; status.style.color = '#0f0'; }
-            
-            // 4. Auto-Hide Bar
-            setTimeout(() => {
-                if (prog) prog.style.display = 'none';
+            try {
+                // Primary: Lexica search + blob proxy
+                const res = await fetch('https://lexica.art/api/v1/search?q=' + encodeURIComponent(prompt));
+                const data = await res.json();
+                if (data.images && data.images.length > 0) {
+                    const pick = data.images[Math.floor(Math.random() * Math.min(10, data.images.length))];
+                    const imgRes = await fetch(pick.src || pick.srcSmall);
+                    const blob = await imgRes.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    // Smooth transition into stage
+                    v19_Transitions.swap(blobUrl);
+                    // Also inject into media deck for canvas rendering
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = blobUrl;
+                    await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
+                    APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
+                    APP.media.currentIndex = APP.media.queue.length - 1;
+                    APP.media.currentElement = img;
+                    if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
+                    log('V19_AI: LEXICA_COMPLETE');
+                } else {
+                    // Fallback: Pollinations
+                    const seed = Math.floor(Math.random() * 9999);
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
+                    v19_Transitions.swap(url);
+                    if (status) { status.textContent = 'POLLINATIONS_FALLBACK'; status.style.color = 'var(--o)'; }
+                    log('V19_AI: POLLINATIONS_FALLBACK');
+                }
+            } catch (e) {
+                log('V19_AI: FAIL >> ' + e.message);
+                if (status) { status.textContent = 'GENERATION_FAILED'; status.style.color = 'var(--r)'; }
+            } finally {
                 APP.neural.generating = false;
                 if (btn) btn.classList.remove('on');
-            }, 1200);
-        };
+            }
+        }
+    };
 
-        img.onerror = () => {
-            if (status) { status.textContent = 'API_BUSY_RETRY'; status.style.color = '#f00'; }
-            if (prog) prog.style.display = 'none';
-            APP.neural.generating = false;
-            if (btn) btn.classList.remove('on');
+    // Init v19 transitions CSS
+    v19_Transitions.init();
+
+    // Wire AI generate button to v19_AI
+    if ($('btn-generate-ai')) {
+        $('btn-generate-ai').onclick = () => {
+            const prompt = $('ai-prompt') ? $('ai-prompt').value.trim() : '';
+            v19_AI.generate(prompt);
         };
     }
-};
 
-// Initialization
-if (typeof v19_Transitions !== 'undefined') v19_Transitions.init();
-
-// Single wiring — only if not handled by your global interceptor
-const aiBtnAction = $('btn-generate-ai') || $('btn-gen-ai');
-if (aiBtnAction) {
-    aiBtnAction.onclick = (e) => {
-        e.preventDefault();
-        const pInput = $('ai-prompt');
-        if (pInput) v19_AI.generate(pInput.value.trim());
-    };
-}
     // --- DRAG INITIALIZATION (mid-script) ---
     makeLogSafeDraggable($('sys-log'));
 
