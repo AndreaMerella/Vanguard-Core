@@ -4898,63 +4898,84 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // v19 AI GENERATOR — Pollinations fallback + Lexica primary, with smooth transition
-    const v19_AI = {
-        generate: async (prompt) => {
-            const status = $('ai-status');
-            const btn = $('btn-generate-ai');
-            if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
-            if (APP.neural.generating) return;
-            APP.neural.generating = true;
-            if (status) { status.textContent = 'GENERATING...'; status.style.color = 'var(--v)'; }
-            if (btn) btn.classList.add('on');
-            log('V19_AI: GENERATING >> ' + prompt);
+    /* --- V19 NEURAL ENGINE (STABLE BUILD) --- */
+const v19_AI = {
+    generate: async (prompt) => {
+        const status = $('ai-status');
+        const btn = $('btn-generate-ai');
+        const prog = $('ai-prog'); 
+        const fill = $('ai-fill'); 
+        
+        // 1. Initialize & Lock
+        if (!APP.neural) APP.neural = { generating: false };
+        if (!prompt || APP.neural.generating) { 
+            if (status && !prompt) status.textContent = 'ENTER_PROMPT'; 
+            return; 
+        }
+        
+        APP.neural.generating = true;
 
-            try {
-                // Pollinations.ai — CORS-friendly, no API key required
-                const seed = Math.floor(Math.random() * 9999);
-                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1280&height=720&nologo=true`;
-                if (status) status.textContent = 'POLLINATIONS: RENDERING...';
+        // 2. UI Activation
+        if (prog) prog.style.display = 'block'; 
+        if (fill) fill.style.width = '15%'; // Quick feedback start
+        if (status) { status.textContent = 'NEURAL_SYNCING...'; status.style.color = '#bf00ff'; }
+        if (btn) btn.classList.add('on');
+        
+        log('V19_AI: GENERATING >> ' + prompt);
 
-                // Preload as blob for canvas-safe injection (no taint)
-                const imgRes = await fetch(pollinationsUrl);
-                const blob = await imgRes.blob();
-                const blobUrl = URL.createObjectURL(blob);
+        // 3. Direct URL Construction (Bypasses fetch 530/CORS errors)
+        const seed = Math.floor(Math.random() * 99999);
+        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + ", cinematic, 8k")}?seed=${seed}&width=1280&height=720&nologo=true`;
 
-                // Smooth transition overlay on stage
-                v19_Transitions.swap(blobUrl);
+        // 4. Kinetic Preload
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; 
+        img.src = url;
+        
+        // Fake mid-way progress while server thinks
+        setTimeout(() => { if(fill) fill.style.width = '60%'; }, 500);
 
-                // Inject into media deck for canvas renderLoop
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = blobUrl;
-                await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; });
-                APP.media.queue.push({ type: 'image', url: blobUrl, element: img, name: 'AI_' + Date.now() });
-                APP.media.currentIndex = APP.media.queue.length - 1;
+        img.onload = () => {
+            if (fill) fill.style.width = '100%';
+            
+            // Trigger V19 Transition
+            if (typeof v19_Transitions !== 'undefined') v19_Transitions.swap(url);
+            
+            // Sync with VJ Media Deck (for canvas recordings)
+            if (APP.media && APP.media.queue) {
+                APP.media.queue.push({ type: 'image', url: url, element: img, name: 'AI_' + Date.now() });
+                APP.media.currentIndex = APP.media.queue.length - 1; 
                 APP.media.currentElement = img;
+            }
+            
+            if (status) { status.textContent = 'RENDER_COMPLETE'; status.style.color = '#0f0'; }
+            if ($('neural-dot')) $('neural-dot').classList.remove('off');
 
-                if (status) { status.textContent = 'INJECTED_TO_DECK'; status.style.color = 'var(--g)'; }
-                if ($('neural-dot')) $('neural-dot').classList.remove('off');
-                log('V19_AI: POLLINATIONS_COMPLETE');
-            } catch (e) {
-                log('V19_AI: FAIL >> ' + e.message);
-                if (status) { status.textContent = 'GENERATION_FAILED'; status.style.color = 'var(--r)'; }
-            } finally {
+            // 5. Cleanup and Auto-Hide Bar
+            setTimeout(() => {
+                if (prog) prog.style.display = 'none';
                 APP.neural.generating = false;
                 if (btn) btn.classList.remove('on');
-            }
-        }
-    };
+            }, 1000);
+        };
 
-    // Init v19 transitions CSS
-    v19_Transitions.init();
-
-    // Wire AI generate button to v19_AI
-    if ($('btn-generate-ai')) {
-        $('btn-generate-ai').onclick = () => {
-            const prompt = $('ai-prompt') ? $('ai-prompt').value.trim() : '';
-            v19_AI.generate(prompt);
+        img.onerror = () => {
+            log('V19_AI: FAIL');
+            if (status) { status.textContent = 'NEURAL_TIMEOUT'; status.style.color = '#f00'; }
+            if (prog) prog.style.display = 'none';
+            APP.neural.generating = false;
+            if (btn) btn.classList.remove('on');
         };
     }
+};
+
+// Wiring (Fixed for your indexbackup.html logic)
+if ($('btn-generate-ai')) {
+    $('btn-generate-ai').onclick = () => {
+        const p = $('ai-prompt');
+        if (p) v19_AI.generate(p.value.trim());
+    };
+}
 
     // --- DRAG INITIALIZATION (mid-script) ---
     makeLogSafeDraggable($('sys-log'));
