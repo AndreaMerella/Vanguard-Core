@@ -1,22 +1,23 @@
-const CACHE_NAME = 'vngrd-v2'; // Incrementing version clears the old laggy cache
-const assets = [
-  './index.html',
-  './src/app.js',
-  './src/Compositor.js'
+const CACHE_NAME = 'vngrd-v1-cache';
+const ASSETS = [
+    'index.html',
+    'manifest.json',
+    'src/Compositor.js'
 ];
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Forces the new, faster worker to take over immediately
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(assets))
-  );
+// 1. Install Event — Establish the core broadcast cache
+self.addEventListener('install', (e) => {
+    // Forces the service worker to activate immediately, ending any "zombie" lag
+    self.skipWaiting(); 
+    e.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    );
 });
 
-self.addEventListener('fetch', (event) => {
-    // This strategy serves from cache first, then network, to stop the lag
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
+// 2. Fetch Event — Network First with Cache Fallback
+// This ensures that live updates to your indexbackup.html are reflected immediately
+self.addEventListener('fetch', (e) => {
+    e.respondWith(
+        fetch(e.request).catch(() => caches.match(e.request))
     );
 });
