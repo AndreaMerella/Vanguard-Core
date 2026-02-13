@@ -2563,15 +2563,21 @@ function showLowerThird(preset) {
     const lt = $('lower-third'); 
     const container = lt.querySelector('.lt-container');
     
-    // 1. Clean previous states
-    container.classList.remove('lt-guest', 'lt-track', 'lt-breaking'); 
-    if (preset !== 'off') container.classList.add(`lt-${preset}`);
+    // 1. THE KILL-SWITCH: Force stop any current animation
+    lt.classList.remove('visible');
     
-    APP.lowerThird.preset = preset; 
-    APP.lowerThird.visible = true;
+    // Trigger a "Reflow" (This tells the browser: "The bar is officially gone")
+    void lt.offsetWidth; 
 
-    // 2. Map the text (Using the IDs from your HTML)
-    // Note: I used the class selectors to be safe
+    // 2. Clear all state classes
+    container.classList.remove('lt-guest', 'lt-track', 'lt-breaking'); 
+    
+    if (preset === 'off') {
+        hideLowerThird();
+        return;
+    }
+
+    // 3. Set Content (Using local class selectors for safety)
     const titleEl = lt.querySelector('.lt-title');
     const subEl = lt.querySelector('.lt-subtitle');
 
@@ -2588,10 +2594,14 @@ function showLowerThird(preset) {
         subEl.textContent = $('lt-sub')?.value || 'TITLE / ROLE'; 
     }
 
-    // 3. Trigger the Professional CSS Animation
+    // 4. Apply new preset and trigger fresh animation
+    container.classList.add(`lt-${preset}`);
+    APP.lowerThird.preset = preset; 
+    APP.lowerThird.visible = true;
+    
     lt.classList.add('visible');
 
-    // 4. Update UI Buttons
+    // 5. Sync Buttons
     ['guest', 'track', 'breaking', 'off'].forEach(p => { 
         const btn = $(`btn-lt-${p}`);
         if(btn) btn.classList.toggle('on', p === preset); 
