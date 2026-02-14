@@ -1332,8 +1332,10 @@ const APP = {
     guest: { peer: null, connection: null, stream: null, videoElement: null, audioSource: null, isActive: false, peerId: null },
     peer: { peer: null, call: null, localStream: null },
     wallet: { connected: false, address: null, chainId: null, nfts: [] },
+    user: { assets: [] },
+    nftVault: { thumbnails: [], scrollOffset: 0 },
     camera: { stream: null, recorder: null, chunks: [], mode: 'off', isRecording: false, videoEl: null, previewEl: null, micStream: null },
-    render: { canvas: null, ctx: null, width: 3840, height: 2160, fps: 0, frameCount: 0, lastTime: 0, lastFpsUpdate: 0, rafId: null, scale: 1.0, pixelCanvas: null, pixelCtx: null, rgbActive: false },
+    render: { canvas: null, ctx: null, width: 3840, height: 2160, fps: 0, frameCount: 0, lastTime: 0, lastFpsUpdate: 0, rafId: null, scale: 1.0, pixelCanvas: null, pixelCtx: null, rgbActive: false, source: null },
     bug: { visible: true, text: 'VNGRD', image: null, textMode: 0, textVisible: true, imageVisible: false },
     layers: { logoScale: 1.0, logoSrc: null, bugScale: 1.0 },
     // IDENTITY TRINITY — three independent broadcast actors
@@ -1687,6 +1689,123 @@ function initCanvas() {
 }
 function resizeCanvas() { APP.render.canvas.width = APP.render.width; APP.render.canvas.height = APP.render.height; $('res').textContent = `${APP.render.width}x${APP.render.height}`; }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// NFT_VAULT — Horizontal Gallery (burned into canvas bottom)
+// ═══════════════════════════════════════════════════════════════════════════
+function drawNFTVault(ctx, w, h) {
+    var assets = APP.user.assets;
+    if (!assets || assets.length === 0) return;
+
+    var thumbSize = Math.round(h * 0.08);
+    var padding = Math.round(thumbSize * 0.15);
+    var barH = thumbSize + padding * 2;
+    var barY = h - barH;
+
+    // Gallery bar background — dark glass
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(4, 4, 8, 0.85)';
+    ctx.fillRect(0, barY, w, barH);
+
+    // Top accent line
+    ctx.fillStyle = 'rgba(0, 243, 255, 0.4)';
+    ctx.fillRect(0, barY, w, 1);
+
+    // Clear thumbnail hit areas for this frame
+    APP.nftVault.thumbnails = [];
+
+    // Calculate total gallery width for centering
+    var totalW = assets.length * (thumbSize + padding) - padding;
+    var startX = Math.max(padding, (w - totalW) / 2);
+
+    for (var i = 0; i < assets.length; i++) {
+        var asset = assets[i];
+        if (!asset.image || !asset.image.complete || asset.image.naturalWidth === 0) continue;
+
+        var tx = startX + i * (thumbSize + padding);
+        var ty = barY + padding;
+
+        // Draw thumbnail with border
+        ctx.drawImage(asset.image, tx, ty, thumbSize, thumbSize);
+
+        // Accent border
+        ctx.strokeStyle = (APP.render.source === asset.image) ? '#ff3333' : 'rgba(0, 243, 255, 0.6)';
+        ctx.lineWidth = (APP.render.source === asset.image) ? 2 : 1;
+        ctx.strokeRect(tx, ty, thumbSize, thumbSize);
+
+        // Label
+        var labelFS = Math.max(8, Math.round(thumbSize * 0.14));
+        ctx.font = '700 ' + labelFS + 'px Orbitron, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        var label = (asset.name || 'NFT').substring(0, 10);
+        ctx.fillText(label, tx + thumbSize / 2, ty + thumbSize + 2);
+
+        // Store hit area for click detection
+        APP.nftVault.thumbnails.push({
+            x: tx, y: ty, w: thumbSize, h: thumbSize,
+            index: i
+        });
+    }
+
+    ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUMMONER LOGIC — NFT click triggers source swap + System Summoning glitch
+// ═══════════════════════════════════════════════════════════════════════════
+function initSummonerLogic() {
+    var canvas = APP.render.canvas;
+    if (!canvas) return;
+
+    canvas.addEventListener('click', function(e) {
+        if (!APP.user.assets || APP.user.assets.length === 0) return;
+        if (!APP.nftVault.thumbnails || APP.nftVault.thumbnails.length === 0) return;
+
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = APP.render.width / rect.width;
+        var scaleY = APP.render.height / rect.height;
+        var cx = (e.clientX - rect.left) * scaleX;
+        var cy = (e.clientY - rect.top) * scaleY;
+
+        for (var i = 0; i < APP.nftVault.thumbnails.length; i++) {
+            var t = APP.nftVault.thumbnails[i];
+            if (cx >= t.x && cx <= t.x + t.w && cy >= t.y && cy <= t.y + t.h) {
+                // ── SYSTEM SUMMONING ──
+                var asset = APP.user.assets[t.index];
+                if (!asset || !asset.image) return;
+
+                // Set render source to the NFT image
+                APP.render.source = asset.image;
+
+                // Snapshot current FX state
+                var prevGlitch = APP.vj.glitchSnap;
+                var prevRGB = APP.vj.rgbIntensity;
+                var prevRGBEnabled = APP.vj.rgbEnabled;
+
+                // Spike glitch effects — System Summoning
+                APP.vj.glitchSnap = 5;
+                APP.vj.rgbIntensity = 30;
+                APP.vj.rgbEnabled = true;
+                triggerChromaticAberration();
+                triggerImpact();
+
+                log('SUMMONER: ' + (asset.name || 'NFT_' + t.index) + ' INVOKED');
+
+                // Cool-down after 500ms — restore FX
+                setTimeout(function() {
+                    APP.vj.glitchSnap = prevGlitch;
+                    APP.vj.rgbIntensity = prevRGB;
+                    APP.vj.rgbEnabled = prevRGBEnabled;
+                }, 500);
+
+                return; // Only summon one per click
+            }
+        }
+    });
+}
+
 function renderLoop(timestamp) {
     APP.render.rafId = requestAnimationFrame(renderLoop);
     APP.render.frameCount++;
@@ -1730,7 +1849,8 @@ function renderLoop(timestamp) {
     ctx.filter = filterStr;
     
     let source = null;
-    if (APP.state.isLive && APP.camera.stream && APP.camera.videoEl) source = APP.camera.videoEl; 
+    if (APP.render.source) source = APP.render.source;
+    else if (APP.state.isLive && APP.camera.stream && APP.camera.videoEl) source = APP.camera.videoEl;
     else if (APP.guest.stream && APP.guest.isActive && APP.guest.videoElement) source = APP.guest.videoElement;
     else if (APP.media.currentElement) source = APP.media.currentElement;
     
@@ -1974,6 +2094,9 @@ function renderLoop(timestamp) {
 
         ctx.restore();
     }
+
+    // ═══ NFT_VAULT — Horizontal Gallery at bottom ═══
+    drawNFTVault(ctx, w, h);
 
     // ═══ PERMANENT SIGNATURE — untouchable, not part of Trinity ═══
     ctx.save();
@@ -3198,6 +3321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var _ul = $('user-logo-layer'); if (_ul) _ul.style.opacity = '0';
     
     requestAnimationFrame(renderLoop);
+    initSummonerLogic();
     updateClock(); setInterval(updateClock, 1000); morphLogo(); setTimeout(morphLogo, 4000);
 
     // AUTO-MIDI: Probe for MIDI on load, link to seismic trigger
@@ -4844,14 +4968,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 APP.wallet.nfts = data.ownedNfts;
                 $('nft-count').textContent = 'ASSETS: ' + data.totalCount;
                 $('vault-dot').classList.remove('off');
-                
+
+                // Populate APP.user.assets with preloaded images for canvas gallery
+                APP.user.assets = [];
                 let html = '';
-                data.ownedNfts.slice(0, 5).forEach(nft => {
+                data.ownedNfts.forEach(nft => {
                     const name = nft.title || nft.contract.name || 'UNKNOWN';
+                    const imageUrl = (nft.media && nft.media[0] && nft.media[0].gateway)
+                        || (nft.metadata && nft.metadata.image)
+                        || '';
                     html += `<div style="margin:2px 0;color:var(--accent);">${name.substring(0, 20)}</div>`;
+
+                    if (imageUrl) {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.src = imageUrl;
+                        APP.user.assets.push({ name: name, imageUrl: imageUrl, image: img });
+                    }
                 });
                 $('nft-vault-list').innerHTML = html;
-                log('NFT_VAULT: ' + data.totalCount + ' ASSETS');
+                log('NFT_VAULT: ' + data.totalCount + ' ASSETS LOADED TO CANVAS');
             } else {
                 $('nft-vault-list').innerHTML = 'NO_NFTS_FOUND';
                 $('nft-count').textContent = 'ASSETS: 0';

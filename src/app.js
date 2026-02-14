@@ -38,7 +38,8 @@ const APP = {
         uiReactivity: false,
         seismicTimer: null,
         shakeIntensity: 0,
-        lastBassLevel: 0
+        lastBassLevel: 0,
+        glitchSnap: 0
     },
 
     // Stored VJ state for impact recovery
