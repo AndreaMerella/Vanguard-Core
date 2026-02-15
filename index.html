@@ -2332,12 +2332,22 @@ if ($('file-2d-logo')) {
             const url = URL.createObjectURL(file);
             const logoLayer = $('user-logo-layer');
             if (logoLayer) {
-                logoLayer.src = url;
+                // Ensure element is visible BEFORE setting src (GIF animation requires display:block)
                 logoLayer.style.display = 'block';
+                logoLayer.style.position = 'fixed';
+                logoLayer.style.bottom = '0';
+                logoLayer.style.right = '0';
+                logoLayer.style.width = '1px';
+                logoLayer.style.height = '1px';
+                logoLayer.style.zIndex = '-1';
+                logoLayer.style.opacity = '0.01';
+                logoLayer.style.pointerEvents = 'none';
+                logoLayer.style.maxWidth = 'none';
+                logoLayer.style.maxHeight = 'none';
+                logoLayer.src = url;
                 logoLayer.style.background = 'transparent';
                 logoLayer.style.border = 'none';
                 logoLayer.style.boxShadow = 'none';
-                logoLayer.style.pointerEvents = 'auto';
             }
             APP.trinity.logo.visible = true;
             log('2D_LOGO: ' + file.name.toUpperCase());
@@ -2872,8 +2882,9 @@ $('file-vgd').onchange = (e) => {
             if (s.logo2d) {
                 var logoLayer = $('user-logo-layer');
                 if (logoLayer) {
-                    logoLayer.src = s.logo2d;
+                    // display:block BEFORE src for GIF animation
                     logoLayer.style.display = 'block';
+                    logoLayer.src = s.logo2d;
                     APP.trinity.logo.visible = true;
                     log('2D_LOGO: RESTORED_FROM_VGD');
                 }
@@ -3318,7 +3329,23 @@ document.addEventListener('DOMContentLoaded', () => {
  
     // Hide DOM overlays — Trinity actors are drawn directly on canvas
     var _sb = $('station-bug'); if (_sb) _sb.style.opacity = '0';
-    var _ul = $('user-logo-layer'); if (_ul) _ul.style.opacity = '0';
+    // Keep user-logo-layer browser-visible for GIF animation:
+    // position behind canvas, barely opaque → browser advances GIF frames
+    // drawImage() captures current animated frame → recordings get animation
+    var _ul = $('user-logo-layer');
+    if (_ul) {
+        _ul.style.display = 'block';
+        _ul.style.position = 'fixed';
+        _ul.style.bottom = '0';
+        _ul.style.right = '0';
+        _ul.style.width = '1px';
+        _ul.style.height = '1px';
+        _ul.style.zIndex = '-1';
+        _ul.style.opacity = '0.01';
+        _ul.style.pointerEvents = 'none';
+        _ul.style.maxWidth = 'none';
+        _ul.style.maxHeight = 'none';
+    }
     
     requestAnimationFrame(renderLoop);
     initSummonerLogic();
@@ -3583,15 +3610,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Ensure uploaded logos are interactable
-    $('file-layer-logo').onchange = e => { 
-        if (e.target.files.length) { 
-            const url = URL.createObjectURL(e.target.files[0]); 
+    $('file-layer-logo').onchange = e => {
+        if (e.target.files.length) {
+            const url = URL.createObjectURL(e.target.files[0]);
             const img = $('user-logo-layer');
-            img.src = url; 
-            img.style.display = 'block'; 
-            img.style.pointerEvents = 'auto'; 
+            // display:block BEFORE src for GIF animation
+            img.style.display = 'block';
+            img.style.position = 'fixed';
+            img.style.bottom = '0';
+            img.style.right = '0';
+            img.style.width = '1px';
+            img.style.height = '1px';
+            img.style.zIndex = '-1';
+            img.style.opacity = '0.01';
+            img.style.pointerEvents = 'none';
+            img.style.maxWidth = 'none';
+            img.style.maxHeight = 'none';
+            img.src = url;
             log('IDENTITY_LAYER_LOADED');
-        } 
+        }
     };
 
     // ========================================
