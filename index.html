@@ -3171,7 +3171,25 @@ async function initWeb3() {
     try {
         if (typeof window.ethereum !== 'undefined') {
             APP.web3.provider = window.ethereum;
-            // Check already-connected accounts without triggering popup
+
+            // 1. SURGICAL ADDITION: Account & Chain Switching Listeners
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    APP.web3.address = accounts[0];
+                    APP.web3.isConnected = true;
+                    APP.web3.mode = 'sovereign';
+                    log('IDENTITY: SWAPPED_TO [' + accounts[0].slice(0, 8) + ']');
+                    // Trigger UI refresh here if you have a refresh function
+                } else {
+                    APP.web3.mode = 'guest';
+                    APP.web3.isConnected = false;
+                    log('WEB3: DISCONNECTED');
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => window.location.reload());
+
+            // 2. Initial check for already-connected accounts
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             if (accounts.length > 0) {
                 APP.web3.address = accounts[0];
@@ -3193,33 +3211,6 @@ async function initWeb3() {
         log('WEB3: GUEST_FALLBACK');
     }
 }
-
-async function signVideoDNA(videoBlob) {
-    const result = { hash: null, signature: null, timestamp: Date.now(), address: APP.web3.address || 'guest', mode: APP.web3.mode };
-    try {
-        const ab = await videoBlob.arrayBuffer();
-        const hashBuf = await window.crypto.subtle.digest('SHA-256', ab);
-        result.hash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-        if (APP.web3.mode === 'sovereign' && APP.web3.provider) {
-            const msg = 'VNGRD_DNA_SEAL:' + result.hash + ':' + result.timestamp;
-            result.signature = await APP.web3.provider.request({ method: 'personal_sign', params: [msg, APP.web3.address] });
-            log('DNA: SEALED + ETH_SIG');
-        } else {
-            localStorage.setItem('vngrd_last_hash', result.hash);
-            log('DNA: SEALED_SHA256 (GUEST)');
-        }
-    } catch (e) { log('DNA_SEAL_ERR'); }
-    return result;
-}
-
-function injectDNAHeader(dna, seal) {
-    if (!dna || !seal) return dna;
-    dna.sovereign = {
-        hash: seal.hash, signature: seal.signature, timestamp: seal.timestamp,
-        address: seal.address, mode: seal.mode,
-        traits: { resolution: APP.render.width + 'x' + APP.render.height, codec: 'vp9+opus', bitrate: '15Mbps', spatialMode: APP.audio.spatialMode, theme: APP.state.theme, version: 'VNGRD_23.5_SERVERLESS' }
-    };
-    return dna;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
