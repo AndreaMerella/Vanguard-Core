@@ -1256,6 +1256,7 @@ body.shooting-mode #btn-shooting {
     <input type="file" id="file-vgd" accept=".vgd,.json">
     <audio id="audio-el"></audio>
     <div id="media-container" style="display:none;"></div>
+    <div id="gif-host" style="position:fixed;bottom:0;right:0;width:1px;height:1px;z-index:-9999;opacity:0.01;pointer-events:none;"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -2378,7 +2379,7 @@ function loadMediaFiles(input) {
         const type = file.type.startsWith('video') ? 'video' : 'image';
         const item = { type, url, element: null, name: file.name };
         if (type === 'video') { const vid = document.createElement('video'); vid.src = url; vid.muted = true; vid.loop = !APP.state.isCycle; vid.playsInline = true; vid.preload = 'auto'; item.element = vid; $('media-container').appendChild(vid); }
-        else { const img = new Image(); img.src = url; item.element = img; }
+        else { const img = new Image(); img.src = url; img.style.width = '1px'; img.style.height = '1px'; item.element = img; $('gif-host').appendChild(img); }
         APP.media.queue.push(item);
         if (isFirstLoad && idx === 0) rotateMedia();
     });
@@ -2411,6 +2412,7 @@ function ejectCurrent() {
     if (APP.media.queue.length === 0) return;
     const current = APP.media.queue[APP.media.currentIndex];
     if (current.element?.tagName === 'VIDEO') { current.element.pause(); current.element.src = ''; current.element.remove(); }
+    if (current.element?.tagName === 'IMG' && current.element.parentNode) { current.element.remove(); }
     URL.revokeObjectURL(current.url);
     APP.media.queue.splice(APP.media.currentIndex, 1);
     if (APP.media.queue.length === 0) { APP.media.currentIndex = -1; APP.media.currentElement = null; $('media-dot').classList.add('off'); APP.render.ctx.fillStyle = '#000'; APP.render.ctx.fillRect(0, 0, APP.render.width, APP.render.height); }
@@ -2907,11 +2909,11 @@ function loadFromMemory() {
     try {
         const s = JSON.parse(data);
         if(s.theme) setTheme(s.theme);
-        if(s.bug) { APP.bug.text = s.bug; $('bug-text').value = s.bug; updateBug(); }
+        if(s.bug) { APP.bug.text = s.bug; if ($('bug-text')) $('bug-text').value = s.bug; var _bugEl = $('station-bug'); if (_bugEl) _bugEl.textContent = s.bug; }
         if(s.vj) { APP.vj = { ...APP.vj, ...s.vj }; }
         if(s.layers) { APP.layers = { ...APP.layers, ...s.layers }; APP.trinity.logo.scale = APP.layers.logoScale || 1.0; APP.trinity.bug.scale = APP.layers.bugScale || 1.5; }
         // Restore 2D Logo from Base64
-        if (s.logo2d) { var _ll = $('user-logo-layer'); if (_ll) { _ll.src = s.logo2d; _ll.style.display = 'block'; APP.trinity.logo.visible = true; } }
+        if (s.logo2d) { var _ll = $('user-logo-layer'); if (_ll) { _ll.style.display = 'block'; _ll.src = s.logo2d; APP.trinity.logo.visible = true; } }
         // Restore Lower Third
         if (s.lowerThird) {
             if (s.lowerThird.title && $('lt-title-text')) $('lt-title-text').textContent = s.lowerThird.title;
@@ -5368,12 +5370,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) {
             loadModelFile(file);
         } else if (fileInput) {
-            // No file pre-selected — open dialog and load on selection
+            // Show fallback cube immediately so the 3D viewport is always visible
+            addFallbackCube();
+            // Then open file dialog — on selection, replace the cube with the loaded model
             fileInput.onchange = function() {
                 if (fileInput.files.length > 0) {
+                    // Remove fallback cube before loading new model
+                    if (window.APP.hologram.mesh) {
+                        scene.remove(window.APP.hologram.mesh);
+                        window.APP.hologram.mesh = null;
+                    }
                     loadModelFile(fileInput.files[0]);
-                } else {
-                    addFallbackCube();
                 }
             };
             fileInput.click();
@@ -5410,6 +5417,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 scene.add(logoGroup);
                 window.APP.hologram.logoGroup = logoGroup;
             }
+
+            // Restore widget-layer visibility (btn-3d-x sets display:none)
+            var wl = document.getElementById('widget-layer');
+            if (wl) wl.style.display = 'block';
 
             window.APP.trinity.holo.x = 0.35;
             window.APP.trinity.holo.y = 0.25;
