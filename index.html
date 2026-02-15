@@ -3160,26 +3160,25 @@ async function initWeb3() {
     try {
         if (typeof window.ethereum !== 'undefined') {
             APP.web3.provider = window.ethereum;
-            // Check already-connected accounts without triggering popup
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+
+            // FORCE REQUEST: This ensures the app 'really' sees the address
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            
             if (accounts.length > 0) {
                 APP.web3.address = accounts[0];
                 APP.web3.isConnected = true;
                 APP.web3.mode = 'sovereign';
-                APP.layerSaver.allReady = true;
-                enableRecordButtons(true);
-                log('WEB3: SOVEREIGN [' + APP.web3.address.slice(0, 8) + '...]');
-            } else {
-                APP.web3.mode = 'guest';
-                log('WEB3: GUEST_MODE (CONNECT VIA WALLET BADGE)');
+                
+                // Trigger the asset scan immediately on real connection
+                if (typeof scanNFTs === 'function') scanNFTs();
+                
+                log('WEB3: SOVEREIGN_SYNC_OK [' + APP.web3.address.slice(0, 8) + ']');
             }
         } else {
-            APP.web3.mode = 'guest';
-            log('WEB3: GUEST_MODE');
+            log('WEB3_ERR: NO_INJECTED_PROVIDER');
         }
     } catch (e) {
-        APP.web3.mode = 'guest';
-        log('WEB3: GUEST_FALLBACK');
+        log('WEB3_ERR: CONNECTION_REJECTED');
     }
 }
 
