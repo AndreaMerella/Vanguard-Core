@@ -2497,25 +2497,46 @@ function panicReset() {
 }
 
 function toggleCycle() {
+    // 1. Safety Check: Don't cycle if queue is empty
     if (APP.media.queue.length === 0) return; 
 
+    // 2. Toggle the State
     APP.state.isCycle = !APP.state.isCycle;
+    
+    // 3. Get UI Elements
     const btn = $('btn-cycle-toggle');
     const header = $('media-header');
-    
+    const badge = $('cycle-badge');
+    const sliderWrap = $('cycle-slider-wrap'); // <--- CRITICAL FIX
+
     if (APP.state.isCycle) {
+        // --- TURN ON ---
         btn.innerHTML = 'CYCLE: ON';
         btn.classList.add('cycle-active'); 
         header.classList.add('scanning');
-        $('cycle-badge').classList.add('on');
-        checkCycleLogic();
+        badge.classList.add('on');
+        
+        // SHOW SLIDER
+        if (sliderWrap) sliderWrap.style.display = 'flex'; 
+
+        checkCycleLogic(); // Start the loop
     } else {
+        // --- TURN OFF ---
         btn.innerHTML = 'CYCLE: OFF';
         btn.classList.remove('cycle-active');
         header.classList.remove('scanning');
-        $('cycle-badge').classList.remove('on');
+        badge.classList.remove('on');
+        
+        // HIDE SLIDER
+        if (sliderWrap) sliderWrap.style.display = 'none'; 
+
+        // Stop the timer
         clearTimeout(APP.state.cycleTimer);
-        if (APP.media.currentElement?.tagName === 'VIDEO') APP.media.currentElement.loop = true;
+        
+        // Ensure current video loops instead of ending
+        if (APP.media.currentElement && APP.media.currentElement.tagName === 'VIDEO') {
+            APP.media.currentElement.loop = true;
+        }
     }
 }
 
@@ -3097,31 +3118,51 @@ function openProjector() {
     $('btn-projector').classList.add('on'); 
     log('PROJECTOR_OPEN'); 
 }
-// --- KINETIC SNAP ENGINE ---
-function triggerIndustrialSnap(nextImageUrl) {
-    const stage = document.getElementById('main-stage-img'); 
-    if (!stage) return;
+// --- KINETIC SNAP ENGINE (Wipe Synced) ---
+function triggerIndustrialSnap(nextUrl) {
+    // 1. Target the Wrapper (so the wipe clips the whole scene)
+    const container = document.getElementById('visual-container');
+    const imgEl = document.getElementById('media-image');
+    const vidEl = document.getElementById('media-video');
 
-    stage.classList.remove('kinetic-shutter');
-    void stage.offsetWidth; // Force CSS restart
-    stage.classList.add('kinetic-shutter');
+    if (!container) return;
 
+    // 2. Trigger the CSS Animation (The Wipe)
+    container.classList.remove('kinetic-shutter');
+    void container.offsetWidth; // Force Reflow (Restart animation)
+    container.classList.add('kinetic-shutter');
+
+    // 3. Swap Source at the "Invisible" Moment
+    // CSS says wipe closes at 45% of 0.4s = 180ms.
     setTimeout(() => {
-        stage.src = nextImageUrl;
-        log('SYSTEM: FRAME_CAPTURED');
-    }, 200); 
+        // Detect type
+        const isVideo = nextUrl.match(/\.(mp4|mov|webm|mkv)$/i);
+        const activeEl = isVideo ? vidEl : imgEl;
+        const inactiveEl = isVideo ? imgEl : vidEl;
+
+        // Hide old, Show new
+        if (inactiveEl) inactiveEl.style.display = 'none';
+        if (activeEl) {
+            activeEl.style.display = 'block';
+            activeEl.src = nextUrl;
+
+            // Handle Video Audio/Play
+            if (isVideo) {
+                activeEl.volume = 1.0;
+                activeEl.muted = false; // Unmute for seismic engine
+                activeEl.play().catch(e => console.log("Autoplay caught:", e));
+                
+                // Re-hook into the Seismic DAW
+                if (typeof connectVideoAudio === 'function') {
+                    connectVideoAudio(activeEl);
+                }
+            }
+        }
+        
+        if (typeof log === 'function') log('SYSTEM: SNAP_WIPE_COMPLETE');
+        
+    }, 180); // <--- SYNCED TO 45% OF ANIMATION
 }
-
-// THE TRIGGER: This ensures the projector logic and snap logic coexist
-if (typeof log === 'function') log('PROJECTOR_SYSTEM_LINKED');
-// UI
-function setTheme(theme) { document.body.className = document.body.className.replace(/theme-\w+/g, '').replace('system-failure', ''); if (theme !== 'cyan') document.body.classList.add(`theme-${theme}`); APP.state.theme = theme; document.querySelectorAll('.pal').forEach(p => p.classList.toggle('on', p.dataset.t === theme)); log(`THEME: ${theme}`); }
-function toggleVHS() { document.body.classList.toggle('vhs'); $('btn-vhs').classList.toggle('on'); log('VHS'); }
-function toggleCRT() { document.body.classList.toggle('crt'); $('btn-crt').classList.toggle('on'); log('CRT'); }
-function toggleFullscreen() { APP.state.isFullscreen = !APP.state.isFullscreen; document.body.classList.toggle('fullscreen', APP.state.isFullscreen); $('btn-fs').classList.toggle('on', APP.state.isFullscreen); log('FULLSCREEN'); }
-
-function morphLogo() { const logo = $('main-logo'); APP.ui.morphs.forEach(m => logo.classList.remove(m)); APP.ui.logoMorph = (APP.ui.logoMorph + 1) % APP.ui.morphs.length; logo.classList.add(APP.ui.morphs[APP.ui.logoMorph]); }
-function updateClock() { $('clock').textContent = new Date().toTimeString().split(' ')[0]; const s = Math.floor((Date.now() - APP.state.startTime) / 1000); $('uptime').textContent = `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
 
 // EMERGENCY
 $('btn-panic').onclick = panicReset;
