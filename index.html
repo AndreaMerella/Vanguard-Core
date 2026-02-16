@@ -4629,172 +4629,227 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- P2P / E2E CALL ---
-    $('btn-init-peer').onclick = () => {
-        if (APP.peer && APP.peer.peer) {
-            log('PEER: Already initialized');
-            return;
-        }
-        
-        try {
-            const peerId = 'VNGRD-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-            APP.peer = {
-                peer: new Peer(peerId),
-                call: null,
-                localStream: null
-            };
-            
-            APP.peer.peer.on('open', (id) => {
-                $('peer-id-display').value = id;
-                $('guest-dot').classList.remove('off');
-                $('call-status').textContent = 'Ready to call';
-                $('call-status').style.color = 'var(--g)';
-                log('PEER: ' + id);
-            });
-            
-            APP.peer.peer.on('error', (err) => {
-                log('PEER ERROR: ' + err.type);
-                $('call-status').textContent = 'Error: ' + err.type;
-                $('call-status').style.color = 'var(--r)';
-            });
-            
-            // Handle incoming calls - FIXED: Use selected INPUT_SIGNAL deviceId
-            APP.peer.peer.on('call', async (call) => {
-                log('INCOMING_CALL FROM ' + call.peer);
-                $('call-status').textContent = 'INCOMING_CALL...';
-                
-                if (confirm('INCOMING_CALL FROM ' + call.peer + '. ACCEPT?')) {
-                    try {
-                        // Use selected audio input device if available
-                        const audioConstraints = APP.inputDevices.selectedId 
-                            ? { deviceId: { exact: APP.inputDevices.selectedId } }
-                            : true;
-                        
-                        const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: true, 
-                            audio: audioConstraints 
-                        });
-                        APP.peer.localStream = stream;
-                        call.answer(stream);
-                        
-                        call.on('stream', (remoteStream) => {
-                            if (!APP.guest.videoElement) {
-                                APP.guest.videoElement = document.createElement('video');
-                                APP.guest.videoElement.autoplay = true;
-                                APP.guest.videoElement.playsInline = true;
-                                APP.guest.videoElement.muted = false;
-                            }
-                            APP.guest.videoElement.srcObject = remoteStream;
-                            APP.guest.stream = remoteStream;
-                            APP.guest.isActive = true;
-                            
-                            $('call-status').textContent = 'IN_CALL: ' + call.peer;
-                            $('call-status').style.color = 'var(--g)';
-                            log('CALL_CONNECTED');
-                        });
-                        
-                        APP.peer.call = call;
-                    } catch (e) {
-                        log('MEDIA ERROR: ' + e.message);
-                    }
-                } else {
-                    log('CALL REJECTED');
-                }
-            });
-            
-        } catch (e) {
-            log('PEER INIT ERROR: ' + e.message);
-        }
-    };
+    // --- P2P / E2E CALL (FIXED) ---
+
+// Helper to reset buttons to default state
+const resetP2PButtons = () => {
+    $('btn-call-guest').textContent = 'CALL';
+    $('btn-call-guest').style.borderColor = 'var(--text-main)';
+    $('btn-call-guest').style.color = 'var(--text-main)';
     
-    $('btn-copy-id').onclick = () => {
-        const id = $('peer-id-display').value;
-        if (id) {
-            navigator.clipboard.writeText(id);
-            $('btn-copy-id').textContent = '✓ COPIED';
-            setTimeout(() => $('btn-copy-id').textContent = 'COPY_ID', 2000);
-        }
-    };
+    $('btn-init-peer').textContent = 'INIT';
+    $('btn-init-peer').style.display = 'inline-block';
     
-    $('btn-call-guest').onclick = async () => {
-        if (!APP.peer || !APP.peer.peer) {
-            alert('CLICK_INIT_FIRST');
-            return;
-        }
+    // Clear the temp incoming call object
+    if (APP.peer) APP.peer.incomingCall = null;
+};
+
+$('btn-init-peer').onclick = () => {
+    if (APP.peer && APP.peer.peer) {
+        log('PEER: Already initialized');
+        return;
+    }
+    
+    try {
+        const peerId = 'VNGRD-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        APP.peer = {
+            peer: new Peer(peerId),
+            call: null,
+            incomingCall: null, // Staging area for ringing calls
+            localStream: null
+        };
         
-        const remoteId = $('remote-peer-id').value.trim();
-        if (!remoteId) {
-            alert('ENTER_GUEST_ID_TO_CALL');
-            return;
-        }
+        APP.peer.peer.on('open', (id) => {
+            $('peer-id-display').value = id;
+            if ($('guest-dot')) $('guest-dot').classList.remove('off');
+            $('call-status').textContent = 'READY TO CALL';
+            $('call-status').style.color = 'var(--g)';
+            log('PEER: ' + id);
+        });
         
-        try {
-            $('call-status').textContent = 'CALLING...';
-            $('call-status').style.color = 'var(--y)';
+        APP.peer.peer.on('error', (err) => {
+            log('PEER ERROR: ' + err.type);
+            $('call-status').textContent = 'ERR: ' + err.type;
+            $('call-status').style.color = 'var(--r)';
+        });
+        
+        // --- INCOMING CALL HANDLER (Non-Blocking) ---
+        APP.peer.peer.on('call', (call) => {
+            log('INCOMING_CALL FROM ' + call.peer);
             
-            // Use selected audio input device if available
+            // 1. Store the call object but DO NOT answer yet
+            APP.peer.incomingCall = call;
+            
+            // 2. Update UI to "Ringing" Mode
+            $('call-status').textContent = 'RINGING... (' + call.peer + ')';
+            $('call-status').style.color = 'var(--y)'; // Yellow for caution
+            
+            // 3. Turn the "CALL" button into an "ACCEPT" button
+            const btnCall = $('btn-call-guest');
+            btnCall.textContent = 'ACCEPT CALL';
+            btnCall.style.borderColor = 'var(--g)';
+            btnCall.style.color = 'var(--g)';
+            
+            // 4. Play a ring sound if you have one (optional)
+            // new Audio('assets/ring.mp3').play().catch(e => {});
+        });
+        
+    } catch (e) {
+        log('PEER INIT ERROR: ' + e.message);
+    }
+};
+
+$('btn-copy-id').onclick = () => {
+    const idField = $('peer-id-display');
+    if (idField && idField.value) {
+        navigator.clipboard.writeText(idField.value);
+        const originalText = $('btn-copy-id').textContent;
+        $('btn-copy-id').textContent = '✓ COPIED';
+        setTimeout(() => $('btn-copy-id').textContent = originalText, 2000);
+    }
+};
+
+// --- UNIFIED CALL / ANSWER BUTTON ---
+$('btn-call-guest').onclick = async () => {
+    if (!APP.peer || !APP.peer.peer) {
+        alert('CLICK_INIT_FIRST');
+        return;
+    }
+
+    // SCENARIO A: ANSWERING AN INCOMING CALL
+    if (APP.peer.incomingCall) {
+        try {
+            log('ANSWERING CALL...');
+            $('call-status').textContent = 'CONNECTING...';
+            
+            // 1. Get Local Media (Now allowed because user clicked button)
             const audioConstraints = APP.inputDevices.selectedId 
-                ? { deviceId: { exact: APP.inputDevices.selectedId } }
+                ? { deviceId: { exact: APP.inputDevices.selectedId } } 
                 : true;
-            
+
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: true, 
                 audio: audioConstraints 
             });
+            
             APP.peer.localStream = stream;
             
-            const call = APP.peer.peer.call(remoteId, stream);
+            // 2. Answer the staged call
+            const call = APP.peer.incomingCall;
+            call.answer(stream);
             
-            call.on('stream', (remoteStream) => {
-                if (!APP.guest.videoElement) {
-                    APP.guest.videoElement = document.createElement('video');
-                    APP.guest.videoElement.autoplay = true;
-                    APP.guest.videoElement.playsInline = true;
-                }
-                APP.guest.videoElement.srcObject = remoteStream;
-                APP.guest.stream = remoteStream;
-                APP.guest.isActive = true;
-                
-                $('call-status').textContent = 'CONNECTED: ' + remoteId;
-                $('call-status').style.color = 'var(--g)';
-                log('CALL_CONNECTED: ' + remoteId);
-            });
+            // 3. Handle the stream when it arrives
+            handleCallStream(call);
             
-            call.on('close', () => {
-                log('CALL_ENDED');
-                $('call-status').textContent = 'CALL_ENDED';
-                APP.guest.isActive = false;
-            });
-            
-            call.on('error', (err) => {
-                log('CALL_ERROR: ' + err);
-                $('call-status').textContent = 'CALL_FAILED';
-                $('call-status').style.color = 'var(--r)';
-            });
-            
-            APP.peer.call = call;
+            // 4. Cleanup UI
+            APP.peer.incomingCall = null; // Clear staging
             
         } catch (e) {
-            log('CALL_ERROR: ' + e.message);
-            $('call-status').textContent = 'FAILED: ' + e.message;
-            $('call-status').style.color = 'var(--r)';
+            log('ANSWER ERROR: ' + e.message);
+            resetP2PButtons();
         }
-    };
-    
-    $('btn-hangup').onclick = () => {
-        if (APP.peer && APP.peer.call) {
-            APP.peer.call.close();
-        }
-        if (APP.peer && APP.peer.localStream) {
-            APP.peer.localStream.getTracks().forEach(t => t.stop());
-        }
-        APP.guest.isActive = false;
-        APP.guest.stream = null;
-        $('call-status').textContent = 'DISCONNECTED';
-        $('call-status').style.color = 'var(--text-dim)';
-        log('CALL_ENDED');
-    };
+        return;
+    }
 
+    // SCENARIO B: MAKING A NEW CALL
+    const remoteId = $('remote-peer-id').value.trim();
+    if (!remoteId) {
+        alert('ENTER_GUEST_ID_TO_CALL');
+        return;
+    }
+    
+    try {
+        $('call-status').textContent = 'CALLING...';
+        $('call-status').style.color = 'var(--y)';
+        
+        const audioConstraints = APP.inputDevices.selectedId 
+            ? { deviceId: { exact: APP.inputDevices.selectedId } } 
+            : true;
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: audioConstraints 
+        });
+        APP.peer.localStream = stream;
+        
+        const call = APP.peer.peer.call(remoteId, stream);
+        handleCallStream(call);
+        
+    } catch (e) {
+        log('CALL_ERROR: ' + e.message);
+        $('call-status').textContent = 'FAILED: ' + e.message;
+        $('call-status').style.color = 'var(--r)';
+    }
+};
+
+// Shared Logic for both Incoming and Outgoing calls
+function handleCallStream(call) {
+    call.on('stream', (remoteStream) => {
+        // Ensure Video Element Exists
+        if (!APP.guest.videoElement) {
+            APP.guest.videoElement = document.createElement('video');
+            APP.guest.videoElement.autoplay = true;
+            APP.guest.videoElement.playsInline = true;
+            // Optionally append to DOM if not already handled elsewhere
+            // document.body.appendChild(APP.guest.videoElement); 
+        }
+        
+        APP.guest.videoElement.srcObject = remoteStream;
+        APP.guest.stream = remoteStream;
+        APP.guest.isActive = true;
+        
+        // If you have the DAW Audio Chain logic:
+        // if (typeof connectVideoAudio === 'function') connectVideoAudio(APP.guest.videoElement);
+
+        $('call-status').textContent = 'CONNECTED';
+        $('call-status').style.color = 'var(--g)';
+        
+        // Reset button to "CALL" state (or change to "MUTE" if you prefer)
+        $('btn-call-guest').textContent = 'CALL (ACTIVE)';
+        
+        log('CALL_ESTABLISHED_WITH: ' + call.peer);
+    });
+    
+    call.on('close', () => {
+        endCallCleanup();
+    });
+    
+    call.on('error', (err) => {
+        log('CALL_ERROR: ' + err);
+        endCallCleanup();
+    });
+    
+    APP.peer.call = call;
+}
+
+$('btn-hangup').onclick = () => {
+    if (APP.peer && APP.peer.call) {
+        APP.peer.call.close();
+    }
+    // Also reject if it was just ringing
+    if (APP.peer && APP.peer.incomingCall) {
+        APP.peer.incomingCall.close();
+        log('INCOMING CALL REJECTED');
+    }
+    endCallCleanup();
+};
+
+function endCallCleanup() {
+    if (APP.peer && APP.peer.localStream) {
+        APP.peer.localStream.getTracks().forEach(t => t.stop());
+    }
+    
+    APP.guest.isActive = false;
+    APP.guest.stream = null;
+    APP.peer.call = null;
+    APP.peer.incomingCall = null;
+    
+    $('call-status').textContent = 'DISCONNECTED';
+    $('call-status').style.color = 'var(--text-dim)';
+    
+    resetP2PButtons();
+    log('CALL_ENDED_CLEANUP');
+}
     // ========================================
     // ========================================
     // PRO-AUDIO: 48KHZ RAW DIRECT PATH
