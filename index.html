@@ -484,7 +484,9 @@
         #cycle-badge { border-color: var(--y); color: var(--y); background: rgba(255,204,0,0.05); display: none; }
         #cycle-badge.on { display: flex; }
 
-        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); overflow-y: auto; z-index: 4000; scrollbar-width: none; transition: border-color 0.4s ease, box-shadow 0.4s ease; }
+        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; z-index: 4000; scrollbar-width: none; transition: border-color 0.4s ease, box-shadow 0.4s ease; }
+        .sidebar .section { flex-shrink: 1; overflow: hidden; }
+        .sidebar .section:last-child { flex-shrink: 0; }
         #left-panel { left: 0; border-left: none; border-right: 1px solid rgba(0, 243, 255, 0.1); }
         #right-panel { right: 0; border-right: none; border-left: 1px solid rgba(0, 243, 255, 0.1); }
         .section { border-bottom: 1px solid var(--border); }
@@ -501,7 +503,15 @@
         .sec-dot.off { background: var(--text-dim); box-shadow: none; }
         .sec-dot.gold { background: var(--y); box-shadow: 0 0 6px var(--y); }
         .sec-body { padding: 10px 12px; }
-        
+
+        /* FOLD/COLLAPSE LOGIC */
+        .fold-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; position: relative; overflow: hidden; }
+        .fold-header .sec-title { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 2px; color: var(--accent); }
+        .fold-header .fold-icon { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); margin-right: 6px; min-width: 14px; }
+        .fold-header:hover .fold-icon { color: var(--accent); }
+        .fold-content { overflow: hidden; transition: max-height 0.2s ease; }
+        .fold-content.hidden { max-height: 0 !important; }
+
         /* VNGRD BUTTONS - DIGITAL SNAP */
         .btn { display: block; width: 100%; padding: 8px 10px; margin-bottom: 6px; background: linear-gradient(180deg, #0f0f14 0%, #0a0a0e 100%); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-align: left; transition: all 0.05s step-end; }
         .btn:hover { background: linear-gradient(180deg, #151520 0%, #0f0f14 100%); color: var(--text-bright); border-color: var(--border-light); }
@@ -1169,15 +1179,20 @@ body.shooting-mode #btn-shooting {
             </div>
         </div>
         
-        <div class="section">
-            <div class="sec-head"><span class="sec-title">SESSION_LAB</span><div class="sec-dot"></div></div>
-            <div class="sec-body">
-                <button class="btn rec" id="btn-nft-30">CAPTURE_VGD_CLIP</button>
-                <button class="btn" id="btn-save-session">SAVE_SESSION</button>
-                <button class="btn" id="btn-import-dna">IMPORT_VGD</button>
-                <div class="btn-row">
-                    <button class="btn" id="btn-projector">PROJECTOR</button>
-                    <button class="btn" id="btn-vr" style="color:var(--v)">ENTER_VR</button>
+        <div class="section" id="session-lab-module">
+            <div class="fold-header" data-fold="session-lab-module">
+                <div style="display:flex;align-items:center;gap:0;"><span class="fold-icon">[−]</span><span class="sec-title">SESSION_LAB</span></div>
+                <div class="sec-dot"></div>
+            </div>
+            <div class="fold-content">
+                <div class="sec-body">
+                    <button class="btn rec" id="btn-nft-30">CAPTURE_VGD_CLIP</button>
+                    <button class="btn" id="btn-save-session">SAVE_SESSION</button>
+                    <button class="btn" id="btn-import-dna">IMPORT_VGD</button>
+                    <div class="btn-row">
+                        <button class="btn" id="btn-projector">PROJECTOR</button>
+                        <button class="btn" id="btn-vr" style="color:var(--v)">ENTER_VR</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1203,22 +1218,27 @@ body.shooting-mode #btn-shooting {
             </div>
         </div>
         
-        <div class="section">
-            <div class="sec-head"><span class="sec-title">P2P_E2E_CALL</span><div class="sec-dot off" id="guest-dot"></div></div>
-            <div class="sec-body">
-                <div class="lbl" style="font-size:8px;margin-bottom:4px;">YOUR_CALL_ID:</div>
-                <input type="text" class="inp" id="peer-id-display" readonly placeholder="CLICK_INIT_TO_GET_ID..." style="font-size:9px;text-align:center;color:var(--g);">
-                <button class="btn" id="btn-copy-id" style="font-size:8px;margin-bottom:6px;">COPY_ID</button>
-                
-                <div class="lbl" style="font-size:8px;margin-bottom:4px;">GUEST_ID_TO_CALL:</div>
-                <input type="text" class="inp" id="remote-peer-id" placeholder="PASTE_GUEST_ID..." style="font-size:9px;">
-                
-                <div class="btn-row" style="margin-top:6px;">
-                    <button class="btn" id="btn-init-peer" style="color:var(--g)">INIT</button>
-                    <button class="btn" id="btn-call-guest" style="color:var(--c)">CALL</button>
+        <div class="section" id="p2p-call-module">
+            <div class="fold-header" data-fold="p2p-call-module">
+                <div style="display:flex;align-items:center;gap:0;"><span class="fold-icon">[+]</span><span class="sec-title">P2P_E2E_CALL</span></div>
+                <div class="sec-dot off" id="guest-dot"></div>
+            </div>
+            <div class="fold-content hidden">
+                <div class="sec-body">
+                    <div class="lbl" style="font-size:8px;margin-bottom:4px;">YOUR_CALL_ID:</div>
+                    <input type="text" class="inp" id="peer-id-display" readonly placeholder="CLICK_INIT_TO_GET_ID..." style="font-size:9px;text-align:center;color:var(--g);">
+                    <button class="btn" id="btn-copy-id" style="font-size:8px;margin-bottom:6px;">COPY_ID</button>
+
+                    <div class="lbl" style="font-size:8px;margin-bottom:4px;">GUEST_ID_TO_CALL:</div>
+                    <input type="text" class="inp" id="remote-peer-id" placeholder="PASTE_GUEST_ID..." style="font-size:9px;">
+
+                    <div class="btn-row" style="margin-top:6px;">
+                        <button class="btn" id="btn-init-peer" style="color:var(--g)">INIT</button>
+                        <button class="btn" id="btn-call-guest" style="color:var(--c)">CALL</button>
+                    </div>
+                    <button class="btn" id="btn-hangup" style="color:var(--r);border-color:var(--r);">END_CALL</button>
+                    <div id="call-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;text-align:center;">NOT_CONNECTED</div>
                 </div>
-                <button class="btn" id="btn-hangup" style="color:var(--r);border-color:var(--r);">END_CALL</button>
-                <div id="call-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;text-align:center;">NOT_CONNECTED</div>
             </div>
         </div>
     </aside>
@@ -1257,7 +1277,7 @@ body.shooting-mode #btn-shooting {
     <input type="file" id="file-vgd" accept=".vgd,.json">
     <audio id="audio-el"></audio>
     <div id="media-container" style="display:none;"></div>
-    <div id="gif-host" style="position:fixed;bottom:0;left:0;width:512px;height:512px;z-index:-1;opacity:0.01;pointer-events:none;overflow:hidden;"></div>
+    <div id="gif-host" style="position:fixed;bottom:0;left:0;width:1px;height:1px;opacity:1;pointer-events:none;overflow:hidden;"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -5294,13 +5314,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function injectAIImage(blobUrl, label) {
         var img = new Image();
         img.crossOrigin = 'anonymous';
-        // 512x512 in gif-host forces compositor to render every frame
-        img.style.display = 'block';
-        img.style.position = 'absolute';
-        img.style.width = '512px';
-        img.style.height = '512px';
-        img.style.top = '0';
+        // 1px visible render — forces browser hardware to decode frames
+        img.style.width = '1px';
+        img.style.height = '1px';
+        img.style.opacity = '1';
+        img.style.position = 'fixed';
+        img.style.bottom = '0';
         img.style.left = '0';
+        img.style.pointerEvents = 'none';
         img.src = blobUrl;
         var host = $('gif-host');
         if (host) host.appendChild(img);
@@ -5343,9 +5364,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (status) status.textContent = 'FLUX: GENERATING...';
 
-                // 60s timeout — Flux renders are slow but prompt-adherent
+                // 90s timeout — Flux renders are slow but prompt-adherent
                 var controller = new AbortController();
-                var tid = setTimeout(function() { controller.abort(); }, 60000);
+                var tid = setTimeout(function() { controller.abort(); }, 90000);
                 var res = await fetch(url, { signal: controller.signal });
                 clearTimeout(tid);
 
@@ -5889,6 +5910,20 @@ document.addEventListener('click', (e) => {
     if (id === 'btn-go-live') applyAudioDuck(true);
     if (id === 'btn-end' || id === 'btn-end-live' || id === 'btn-kill') applyAudioDuck(false);
 }, true);
+
+// FOLD/COLLAPSE TOGGLE — SESSION_LAB & P2P_E2E_CALL
+document.querySelectorAll('.fold-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+        var moduleId = this.getAttribute('data-fold');
+        var module = document.getElementById(moduleId);
+        if (!module) return;
+        var content = module.querySelector('.fold-content');
+        var icon = this.querySelector('.fold-icon');
+        if (!content) return;
+        content.classList.toggle('hidden');
+        if (icon) icon.textContent = content.classList.contains('hidden') ? '[+]' : '[−]';
+    });
+});
 
 </script>
 </body>
