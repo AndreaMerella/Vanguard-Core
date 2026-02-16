@@ -64,9 +64,6 @@ const APP = {
         vuData: new Uint8Array(32),
         isPlaying: false,
         isConnected: false,
-        chainReady: false,
-        videoAudioActive: false,
-        videoSource: null,
         // Spatial Audio & Broadcast Chain
         spatialMode: 'stereo', // 'stereo', '3d', 'dolby'
         spatialEnabled: false,
@@ -483,8 +480,7 @@ function loadMediaFiles(input) {
     
     Array.from(input.files).forEach((file, idx) => {
         const url = URL.createObjectURL(file);
-        const isVideo = file.type.startsWith('video') || /\.(mp4|mov|webm|mkv|avi)$/i.test(file.name);
-        const type = isVideo ? 'video' : 'image';
+        const type = file.type.startsWith('video') ? 'video' : 'image';
         const item = { type, url, element: null, name: file.name };
         
         if (type === 'video') {
@@ -530,7 +526,6 @@ function rotateMedia() {
     // 2. STOP CURRENT MEDIA
     if (APP.media.currentElement?.tagName === 'VIDEO') {
         APP.media.currentElement.pause();
-        disconnectVideoAudio();
     }
 
     // 3. THE DATA SWAP
@@ -542,9 +537,6 @@ function rotateMedia() {
         item.element.loop = !APP.state.isCycle;
         item.element.currentTime = 0;
         item.element.play().catch(() => {});
-        connectVideoAudio(item.element);
-    } else {
-        disconnectVideoAudio();
     }
 
     // 5. THE SEAMLESS HANDOFF
@@ -579,7 +571,6 @@ function previousMedia() {
     // Stop current
     if (APP.media.currentElement?.tagName === 'VIDEO') {
         APP.media.currentElement.pause();
-        disconnectVideoAudio();
     }
     
     // Go back (Index - 1), wrap around
@@ -591,10 +582,8 @@ function previousMedia() {
         item.element.loop = !APP.state.isCycle;
         item.element.currentTime = 0;
         item.element.play().catch(() => {});
-        connectVideoAudio(item.element);
-    } else {
-        disconnectVideoAudio();
     }
+    
     triggerImpact();
     log(`MEDIA: ${APP.media.currentIndex + 1}/${APP.media.queue.length}`);
     
@@ -615,7 +604,6 @@ function ejectCurrent() {
     
     // 1. Cleanup Memory
     if (current.element?.tagName === 'VIDEO') {
-        disconnectVideoAudio();
         current.element.pause();
         current.element.src = '';
         current.element.remove();
@@ -629,7 +617,6 @@ function ejectCurrent() {
     if (APP.media.queue.length === 0) {
         APP.media.currentIndex = -1;
         APP.media.currentElement = null;
-        disconnectVideoAudio();
         $('media-dot').classList.add('off');
         // Flash red for empty
         const ctx = APP.render.ctx;
@@ -1056,13 +1043,12 @@ function playTrack() {
 // ═══════════════════════════════════════════════════════════════════════════
 // PRO-GRADE SPATIAL AUDIO ENGINE (DOLBY SIMULATION)
 // ═══════════════════════════════════════════════════════════════════════════
-
-function ensureAudioChain() {
-    if (APP.audio.chainReady) return;
+function setupAudioAnalyzer() {
     try {
         if (!APP.audio.ctx) APP.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 1. Create Core Nodes (no source yet — sources connect separately)
+        // 1. Create Core Nodes
+        APP.audio.source = APP.audio.ctx.createMediaElementSource(APP.audio.element);
         APP.audio.analyzer = APP.audio.ctx.createAnalyser();
         APP.audio.panner = APP.audio.ctx.createPanner();
         APP.audio.compressor = APP.audio.ctx.createDynamicsCompressor();
@@ -1096,6 +1082,8 @@ function ensureAudioChain() {
         try {
             APP.audio.surroundSplitter = APP.audio.ctx.createChannelSplitter(6);
             APP.audio.surroundMerger = APP.audio.ctx.createChannelMerger(6);
+            // Map stereo L/R to front L/R, center, LFE from mono mix
+            // Front Left (0), Front Right (1), Center (2), LFE (3), Surround L (4), Surround R (5)
         } catch (e) {
             log('SURROUND: 5.1_NOT_SUPPORTED');
         }
@@ -1120,11 +1108,11 @@ function ensureAudioChain() {
         // Phase 2: OUTPUT LIMITER (Hard 0dB ceiling - prevents clipping)
         // ═══════════════════════════════════════════════════════════════
         APP.audio.outputLimiter = APP.audio.ctx.createDynamicsCompressor();
-        APP.audio.outputLimiter.threshold.setValueAtTime(-1, APP.audio.ctx.currentTime);
-        APP.audio.outputLimiter.knee.setValueAtTime(0, APP.audio.ctx.currentTime);
-        APP.audio.outputLimiter.ratio.setValueAtTime(20, APP.audio.ctx.currentTime);
-        APP.audio.outputLimiter.attack.setValueAtTime(0.001, APP.audio.ctx.currentTime);
-        APP.audio.outputLimiter.release.setValueAtTime(0.1, APP.audio.ctx.currentTime);
+        APP.audio.outputLimiter.threshold.setValueAtTime(-1, APP.audio.ctx.currentTime);  // 0dB ceiling
+        APP.audio.outputLimiter.knee.setValueAtTime(0, APP.audio.ctx.currentTime);        // Hard knee
+        APP.audio.outputLimiter.ratio.setValueAtTime(20, APP.audio.ctx.currentTime);      // Brick wall
+        APP.audio.outputLimiter.attack.setValueAtTime(0.001, APP.audio.ctx.currentTime);  // Instant
+        APP.audio.outputLimiter.release.setValueAtTime(0.1, APP.audio.ctx.currentTime);   // Fast release
 
         // ═══════════════════════════════════════════════════════════════
         // Phase 2: SIDE-CHAIN DUCKING
@@ -1134,9 +1122,10 @@ function ensureAudioChain() {
         APP.audio.micAnalyzer = APP.audio.ctx.createAnalyser();
         APP.audio.micAnalyzer.fftSize = 256;
 
-        // THE SERIAL CHAIN (without source — sources patch in at panner)
-        // [Source] -> Panner -> Compressor -> DuckingGain -> MasterGain -> Analyzer -> Limiter -> Destination
-        APP.audio.panner
+        // 5. THE SERIAL CHAIN (Upgraded Triple-Path Routing)
+        // Source -> Panner -> Compressor -> DuckingGain -> MasterGain -> Analyzer -> Limiter -> Destination
+        APP.audio.source
+            .connect(APP.audio.panner)
             .connect(APP.audio.compressor)
             .connect(APP.audio.duckingGain)
             .connect(APP.audio.masterGain)
@@ -1147,15 +1136,17 @@ function ensureAudioChain() {
         // Stereo path tap (from masterGain for monitoring)
         APP.audio.masterGain.connect(APP.audio.stereoGain);
 
-        // Dolby path tap — dolbyPanner connects to limiter
+        // Dolby path tap (from source, parallel HRTF processing)
+        APP.audio.source.connect(APP.audio.dolbyPanner);
         APP.audio.dolbyPanner.connect(APP.audio.outputLimiter);
 
         APP.audio.vuData = new Uint8Array(APP.audio.analyzer.frequencyBinCount);
+        APP.audio.isConnected = true;
 
         // Default position: in front of listener (stereo feel)
         positionAudio(0, 0, -1);
 
-        // UI Update — create VU bars
+        // UI Update
         const vu = $('vu');
         vu.innerHTML = '';
         for (let i = 0; i < 16; i++) {
@@ -1164,82 +1155,14 @@ function ensureAudioChain() {
             vu.appendChild(bar);
         }
 
-        APP.audio.chainReady = true;
         updateVU();
-        log('DAW_CHAIN_READY: TRIPLE_PATH + LIMITER + DUCKING');
+        log('DAW_ENGINE_ACTIVE: TRIPLE_PATH + LIMITER + DUCKING');
     } catch (e) { log('AUDIO_CHAIN_ERR: ' + e.message); }
-}
-
-function setupAudioAnalyzer() {
-    ensureAudioChain();
-    if (!APP.audio.chainReady) return;
-
-    try {
-        // Create MediaElementSource for the <audio> element (once only)
-        if (!APP.audio.source) {
-            APP.audio.source = APP.audio.ctx.createMediaElementSource(APP.audio.element);
-        }
-
-        // Connect audio element source into the chain
-        APP.audio.source.connect(APP.audio.panner);
-        APP.audio.source.connect(APP.audio.dolbyPanner);
-
-        APP.audio.isConnected = true;
-        log('DAW_ENGINE_ACTIVE: AUDIO_SOURCE_CONNECTED');
-    } catch (e) { log('AUDIO_SRC_ERR: ' + e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// VIDEO AUDIO ENGINE — Route video audio through the DAW chain
-// ═══════════════════════════════════════════════════════════════════════════
-
-function connectVideoAudio(videoElement) {
-    if (!videoElement || videoElement.tagName !== 'VIDEO') return;
-    try {
-        if (!APP.audio.ctx) APP.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (APP.audio.ctx.state === 'suspended') APP.audio.ctx.resume();
-
-        ensureAudioChain();
-        if (!APP.audio.chainReady) return;
-
-        // Disconnect previous video source if any
-        disconnectVideoAudio();
-
-        // Create MediaElementSource (can only be called once per element)
-        if (!videoElement._audioSource) {
-            videoElement._audioSource = APP.audio.ctx.createMediaElementSource(videoElement);
-        }
-
-        // Unmute the video — audio now routes through Web Audio graph
-        videoElement.muted = false;
-
-        // Patch video source into the DAW chain
-        videoElement._audioSource.connect(APP.audio.panner);
-        videoElement._audioSource.connect(APP.audio.dolbyPanner);
-
-        APP.audio.videoSource = videoElement;
-        APP.audio.videoAudioActive = true;
-
-        log('VIDEO_AUDIO: CONNECTED');
-    } catch (e) { log('VIDEO_AUDIO_ERR: ' + e.message); }
-}
-
-function disconnectVideoAudio() {
-    const vid = APP.audio.videoSource;
-    if (!vid) return;
-    try {
-        if (vid._audioSource) {
-            vid._audioSource.disconnect();
-        }
-        vid.muted = true;
-    } catch (e) { /* already disconnected */ }
-    APP.audio.videoSource = null;
-    APP.audio.videoAudioActive = false;
 }
 
 function updateVU() {
     requestAnimationFrame(updateVU);
-    if (!APP.audio.analyzer || (!APP.audio.isPlaying && !APP.audio.videoAudioActive)) return;
+    if (!APP.audio.analyzer || !APP.audio.isPlaying) return;
     
     APP.audio.analyzer.getByteFrequencyData(APP.audio.vuData);
     const bars = $('vu').children;
@@ -2085,6 +2008,7 @@ function exportDNA() {
     }
 
     return dna;
+}turn dna;
 }
 
 // Assign to APP.state for API access
