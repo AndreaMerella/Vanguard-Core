@@ -262,15 +262,15 @@
     transform-origin: top right;
     display: none;
     cursor: move;
-    pointer-events: auto;
+    pointer-events: auto !important;
 
     /* SURGICAL CLEANUP: NO GLOW, NO BOX */
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 
     /* REPLACED: Professional depth instead of blue neon */
-    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.8));
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.8)) !important;
 }
         
         /* HOLOGRAM WIDGET - REACTOR CORE */
@@ -484,9 +484,7 @@
         #cycle-badge { border-color: var(--y); color: var(--y); background: rgba(255,204,0,0.05); display: none; }
         #cycle-badge.on { display: flex; }
 
-        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; z-index: 4000; scrollbar-width: none; transition: border-color 0.4s ease, box-shadow 0.4s ease; }
-        .sidebar .section { flex-shrink: 1; overflow: hidden; }
-        .sidebar .section:last-child { flex-shrink: 0; }
+        .sidebar { position: fixed; top: 45px; bottom: 55px; width: 200px; background: var(--panel); border: 1px solid var(--border); overflow-y: auto; z-index: 4000; scrollbar-width: none; transition: border-color 0.4s ease, box-shadow 0.4s ease; }
         #left-panel { left: 0; border-left: none; border-right: 1px solid rgba(0, 243, 255, 0.1); }
         #right-panel { right: 0; border-right: none; border-left: 1px solid rgba(0, 243, 255, 0.1); }
         .section { border-bottom: 1px solid var(--border); }
@@ -503,15 +501,7 @@
         .sec-dot.off { background: var(--text-dim); box-shadow: none; }
         .sec-dot.gold { background: var(--y); box-shadow: 0 0 6px var(--y); }
         .sec-body { padding: 10px 12px; }
-
-        /* FOLD/COLLAPSE LOGIC */
-        .fold-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; position: relative; overflow: hidden; }
-        .fold-header .sec-title { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 2px; color: var(--accent); }
-        .fold-header .fold-icon { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); margin-right: 6px; min-width: 14px; }
-        .fold-header:hover .fold-icon { color: var(--accent); }
-        .fold-content { overflow: hidden; transition: max-height 0.2s ease; }
-        .fold-content.hidden { max-height: 0 !important; }
-
+        
         /* VNGRD BUTTONS - DIGITAL SNAP */
         .btn { display: block; width: 100%; padding: 8px 10px; margin-bottom: 6px; background: linear-gradient(180deg, #0f0f14 0%, #0a0a0e 100%); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-align: left; transition: all 0.05s step-end; }
         .btn:hover { background: linear-gradient(180deg, #151520 0%, #0f0f14 100%); color: var(--text-bright); border-color: var(--border-light); }
@@ -1179,20 +1169,15 @@ body.shooting-mode #btn-shooting {
             </div>
         </div>
         
-        <div class="section" id="session-lab-module">
-            <div class="fold-header" data-fold="session-lab-module">
-                <div style="display:flex;align-items:center;gap:0;"><span class="fold-icon">[−]</span><span class="sec-title">SESSION_LAB</span></div>
-                <div class="sec-dot"></div>
-            </div>
-            <div class="fold-content">
-                <div class="sec-body">
-                    <button class="btn rec" id="btn-nft-30">CAPTURE_VGD_CLIP</button>
-                    <button class="btn" id="btn-save-session">SAVE_SESSION</button>
-                    <button class="btn" id="btn-import-dna">IMPORT_VGD</button>
-                    <div class="btn-row">
-                        <button class="btn" id="btn-projector">PROJECTOR</button>
-                        <button class="btn" id="btn-vr" style="color:var(--v)">ENTER_VR</button>
-                    </div>
+        <div class="section">
+            <div class="sec-head"><span class="sec-title">SESSION_LAB</span><div class="sec-dot"></div></div>
+            <div class="sec-body">
+                <button class="btn rec" id="btn-nft-30">CAPTURE_VGD_CLIP</button>
+                <button class="btn" id="btn-save-session">SAVE_SESSION</button>
+                <button class="btn" id="btn-import-dna">IMPORT_VGD</button>
+                <div class="btn-row">
+                    <button class="btn" id="btn-projector">PROJECTOR</button>
+                    <button class="btn" id="btn-vr" style="color:var(--v)">ENTER_VR</button>
                 </div>
             </div>
         </div>
@@ -1218,27 +1203,22 @@ body.shooting-mode #btn-shooting {
             </div>
         </div>
         
-        <div class="section" id="p2p-call-module">
-            <div class="fold-header" data-fold="p2p-call-module">
-                <div style="display:flex;align-items:center;gap:0;"><span class="fold-icon">[+]</span><span class="sec-title">P2P_E2E_CALL</span></div>
-                <div class="sec-dot off" id="guest-dot"></div>
-            </div>
-            <div class="fold-content hidden">
-                <div class="sec-body">
-                    <div class="lbl" style="font-size:8px;margin-bottom:4px;">YOUR_CALL_ID:</div>
-                    <input type="text" class="inp" id="peer-id-display" readonly placeholder="CLICK_INIT_TO_GET_ID..." style="font-size:9px;text-align:center;color:var(--g);">
-                    <button class="btn" id="btn-copy-id" style="font-size:8px;margin-bottom:6px;">COPY_ID</button>
-
-                    <div class="lbl" style="font-size:8px;margin-bottom:4px;">GUEST_ID_TO_CALL:</div>
-                    <input type="text" class="inp" id="remote-peer-id" placeholder="PASTE_GUEST_ID..." style="font-size:9px;">
-
-                    <div class="btn-row" style="margin-top:6px;">
-                        <button class="btn" id="btn-init-peer" style="color:var(--g)">INIT</button>
-                        <button class="btn" id="btn-call-guest" style="color:var(--c)">CALL</button>
-                    </div>
-                    <button class="btn" id="btn-hangup" style="color:var(--r);border-color:var(--r);">END_CALL</button>
-                    <div id="call-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;text-align:center;">NOT_CONNECTED</div>
+        <div class="section">
+            <div class="sec-head"><span class="sec-title">P2P_E2E_CALL</span><div class="sec-dot off" id="guest-dot"></div></div>
+            <div class="sec-body">
+                <div class="lbl" style="font-size:8px;margin-bottom:4px;">YOUR_CALL_ID:</div>
+                <input type="text" class="inp" id="peer-id-display" readonly placeholder="CLICK_INIT_TO_GET_ID..." style="font-size:9px;text-align:center;color:var(--g);">
+                <button class="btn" id="btn-copy-id" style="font-size:8px;margin-bottom:6px;">COPY_ID</button>
+                
+                <div class="lbl" style="font-size:8px;margin-bottom:4px;">GUEST_ID_TO_CALL:</div>
+                <input type="text" class="inp" id="remote-peer-id" placeholder="PASTE_GUEST_ID..." style="font-size:9px;">
+                
+                <div class="btn-row" style="margin-top:6px;">
+                    <button class="btn" id="btn-init-peer" style="color:var(--g)">INIT</button>
+                    <button class="btn" id="btn-call-guest" style="color:var(--c)">CALL</button>
                 </div>
+                <button class="btn" id="btn-hangup" style="color:var(--r);border-color:var(--r);">END_CALL</button>
+                <div id="call-status" style="font-size:8px;color:var(--text-dim);margin-top:4px;text-align:center;">NOT_CONNECTED</div>
             </div>
         </div>
     </aside>
@@ -1277,7 +1257,7 @@ body.shooting-mode #btn-shooting {
     <input type="file" id="file-vgd" accept=".vgd,.json">
     <audio id="audio-el"></audio>
     <div id="media-container" style="display:none;"></div>
-    <div id="gif-host" style="position:fixed;bottom:0;left:0;width:1px;height:1px;opacity:1;pointer-events:none;overflow:hidden;"></div>
+    <div id="gif-host" style="position:fixed;bottom:0;left:0;width:10px;height:10px;z-index:-1;opacity:0.01;pointer-events:none;overflow:hidden;"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -1828,17 +1808,9 @@ function summonNFTByIndex(index) {
 
     // Inject into media queue as a new item
     var item = { type: 'image', url: asset.imageUrl || '', element: asset.image, name: 'NFT_' + (asset.name || index) };
-    // Append to gif-host at 512x512 — forces compositor to render GIF frames
+    // Append to gif-host at natural size (off-screen) for GIF animation
     var host = $('gif-host');
-    if (host && !asset.image.parentNode) {
-        asset.image.style.display = 'block';
-        asset.image.style.position = 'absolute';
-        asset.image.style.width = '512px';
-        asset.image.style.height = '512px';
-        asset.image.style.top = '0';
-        asset.image.style.left = '0';
-        host.appendChild(asset.image);
-    }
+    if (host && !asset.image.parentNode) host.appendChild(asset.image);
 
     APP.media.queue.push(item);
     if (APP.media.currentElement?.tagName === 'VIDEO') APP.media.currentElement.pause();
@@ -2396,22 +2368,19 @@ if ($('file-2d-logo')) {
                 // display:block BEFORE src — triggers GIF animation on load
                 logoLayer.style.display = 'block';
                 logoLayer.src = url;
-                // 512x512 behind canvas — forces compositor to render GIF frames at full speed
+                // ON-SCREEN behind canvas at 10px — browser composites = GIF frames advance
                 logoLayer.style.position = 'fixed';
                 logoLayer.style.bottom = '0';
                 logoLayer.style.left = '0';
-                logoLayer.style.width = '512px';
-                logoLayer.style.height = '512px';
+                logoLayer.style.width = '10px';
+                logoLayer.style.height = '10px';
                 logoLayer.style.opacity = '0.01';
                 logoLayer.style.pointerEvents = 'none';
                 logoLayer.style.zIndex = '-1';
                 logoLayer.style.objectFit = 'cover';
-                logoLayer.style.filter = 'none';
                 logoLayer.style.background = 'transparent';
                 logoLayer.style.border = 'none';
                 logoLayer.style.boxShadow = 'none';
-                logoLayer.style.maxWidth = 'none';
-                logoLayer.style.maxHeight = 'none';
             }
             APP.trinity.logo.visible = true;
             log('2D_LOGO: ' + file.name.toUpperCase());
@@ -2455,17 +2424,11 @@ function loadMediaFiles(input) {
             const vid = document.createElement('video'); vid.src = url; vid.muted = true; vid.loop = !APP.state.isCycle; vid.playsInline = true; vid.preload = 'auto'; item.element = vid; $('media-container').appendChild(vid);
         } else {
             // createObjectURL = native blob ref for GIF animation.
-            // gif-host is ON-SCREEN (512px, behind canvas, opacity:0.01).
-            // 512x512 forces the compositor to render every frame at full speed.
+            // gif-host is ON-SCREEN (10px, behind canvas, overflow:hidden, opacity:0.01).
+            // Browser composites the image = decoder advances GIF frames.
             // drawImage() reads intrinsic naturalWidth x naturalHeight for full quality.
             const img = new Image();
             img.crossOrigin = 'anonymous';
-            img.style.display = 'block';
-            img.style.position = 'absolute';
-            img.style.width = '512px';
-            img.style.height = '512px';
-            img.style.top = '0';
-            img.style.left = '0';
             img.src = url;
             item.element = img;
             var host = $('gif-host');
@@ -2979,15 +2942,11 @@ $('file-vgd').onchange = (e) => {
                     logoLayer.style.position = 'fixed';
                     logoLayer.style.bottom = '0';
                     logoLayer.style.left = '0';
-                    logoLayer.style.width = '512px';
-                    logoLayer.style.height = '512px';
+                    logoLayer.style.width = '10px';
+                    logoLayer.style.height = '10px';
                     logoLayer.style.opacity = '0.01';
                     logoLayer.style.zIndex = '-1';
                     logoLayer.style.objectFit = 'cover';
-                    logoLayer.style.filter = 'none';
-                    logoLayer.style.maxWidth = 'none';
-                    logoLayer.style.maxHeight = 'none';
-                    logoLayer.style.pointerEvents = 'none';
                     logoLayer.src = s.logo2d;
                     APP.trinity.logo.visible = true;
                     log('2D_LOGO: RESTORED_FROM_VGD');
@@ -3041,7 +3000,7 @@ function loadFromMemory() {
         if (s.logo2d) {
             if (isValidDataURI(s.logo2d)) {
                 var _ll = $('user-logo-layer');
-                if (_ll) { _ll.style.display = 'block'; _ll.style.position = 'fixed'; _ll.style.bottom = '0'; _ll.style.left = '0'; _ll.style.width = '512px'; _ll.style.height = '512px'; _ll.style.opacity = '0.01'; _ll.style.zIndex = '-1'; _ll.style.objectFit = 'cover'; _ll.style.filter = 'none'; _ll.style.maxWidth = 'none'; _ll.style.maxHeight = 'none'; _ll.style.pointerEvents = 'none'; _ll.src = s.logo2d; APP.trinity.logo.visible = true; }
+                if (_ll) { _ll.style.display = 'block'; _ll.style.position = 'fixed'; _ll.style.bottom = '0'; _ll.style.left = '0'; _ll.style.width = '10px'; _ll.style.height = '10px'; _ll.style.opacity = '0.01'; _ll.style.zIndex = '-1'; _ll.style.objectFit = 'cover'; _ll.src = s.logo2d; APP.trinity.logo.visible = true; }
             } else {
                 // Corrupt logo data — purge it from the saved session
                 log('MEMORY: CORRUPT_LOGO_PURGED');
@@ -3538,21 +3497,18 @@ document.addEventListener('DOMContentLoaded', () => {
     var _sb = $('station-bug'); if (_sb) _sb.style.opacity = '0';
     // GIF ANIMATION FIX: user-logo-layer must be ON-SCREEN and composited
     // by the browser for frame advancement. Position behind canvas (z-index:-1)
-    // at bottom-left, 512px footprint. Forces compositor to render GIF frames.
+    // at bottom-left, 10px visible footprint. drawImage() reads current frame.
     var _ul = $('user-logo-layer');
     if (_ul) {
         _ul.style.position = 'fixed';
         _ul.style.bottom = '0';
         _ul.style.left = '0';
-        _ul.style.width = '512px';
-        _ul.style.height = '512px';
+        _ul.style.width = '10px';
+        _ul.style.height = '10px';
         _ul.style.opacity = '0.01';
         _ul.style.pointerEvents = 'none';
         _ul.style.zIndex = '-1';
         _ul.style.objectFit = 'cover';
-        _ul.style.filter = 'none';
-        _ul.style.maxWidth = 'none';
-        _ul.style.maxHeight = 'none';
     }
     
     requestAnimationFrame(renderLoop);
@@ -3784,19 +3740,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // display:block before src — triggers GIF animation on load
             img.style.display = 'block';
             img.src = url;
-            // 512x512 behind canvas — forces compositor to render GIF frames at full speed
+            // ON-SCREEN behind canvas — browser composites = GIF frames advance
             img.style.position = 'fixed';
             img.style.bottom = '0';
             img.style.left = '0';
-            img.style.width = '512px';
-            img.style.height = '512px';
+            img.style.width = '10px';
+            img.style.height = '10px';
             img.style.opacity = '0.01';
             img.style.pointerEvents = 'none';
             img.style.zIndex = '-1';
             img.style.objectFit = 'cover';
-            img.style.filter = 'none';
-            img.style.maxWidth = 'none';
-            img.style.maxHeight = 'none';
             APP.trinity.logo.visible = true;
             log('IDENTITY_LAYER_LOADED');
         }
@@ -5314,17 +5267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function injectAIImage(blobUrl, label) {
         var img = new Image();
         img.crossOrigin = 'anonymous';
-        // 1px visible render — forces browser hardware to decode frames
-        img.style.width = '1px';
-        img.style.height = '1px';
-        img.style.opacity = '1';
-        img.style.position = 'fixed';
-        img.style.bottom = '0';
-        img.style.left = '0';
-        img.style.pointerEvents = 'none';
         img.src = blobUrl;
-        var host = $('gif-host');
-        if (host) host.appendChild(img);
         return new Promise(function(ok, fail) {
             img.onload = function() {
                 APP.render.source = null; // Clear override so queue takes priority
@@ -5350,38 +5293,99 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!prompt) { if (status) status.textContent = 'ENTER_PROMPT'; return; }
             if (APP.neural.generating) return;
             APP.neural.generating = true;
-            if (status) { status.textContent = 'FLUX: RENDERING...'; status.style.color = 'var(--v)'; }
+            if (status) { status.textContent = 'RENDERING...'; status.style.color = 'var(--v)'; }
             if (btn) btn.classList.add('on');
             if ($('neural-dot')) $('neural-dot').classList.remove('off');
+            log('NEURAL: GENERATING >> ' + prompt);
 
-            // VJ Prompt Wrapper — ensures high-end visual identity output
-            var finalPrompt = 'Hyper-detailed VJ glitch art, cyberpunk aesthetic, neon pulse, ' + prompt;
-            log('NEURAL: FLUX >> ' + finalPrompt);
+            // Helper: try fetch with multiple CORS proxies
+            async function proxyFetch(url) {
+                var proxies = [
+                    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+                    'https://corsproxy.io/?' + encodeURIComponent(url),
+                    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)
+                ];
+                for (var p = 0; p < proxies.length; p++) {
+                    try {
+                        var r = await fetch(proxies[p]);
+                        if (r.ok) return r;
+                    } catch(e) { /* try next proxy */ }
+                }
+                throw new Error('ALL_PROXIES_FAILED');
+            }
 
-            try {
-                var seed = Math.floor(Math.random() * 999999);
-                var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(finalPrompt) + '?width=1024&height=1024&model=flux&seed=' + seed + '&nologo=true';
+            // Strategy 1: Pollinations (CORS-native text-to-image, multiple endpoint formats)
+            async function tryPollinations() {
+                if (status) status.textContent = 'POLLINATIONS: RENDERING...';
+                var seed = Math.floor(Math.random() * 9999);
+                // Try current API format first, then legacy format
+                var urls = [
+                    'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=1280&height=720&seed=' + seed + '&nologo=true&model=flux',
+                    'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?seed=' + seed + '&width=1280&height=720&nologo=true'
+                ];
+                for (var u = 0; u < urls.length; u++) {
+                    try {
+                        var res = await fetch(urls[u]);
+                        if (!res.ok) continue;
+                        var blob = await res.blob();
+                        if (blob.size < 1000 || !blob.type.startsWith('image/')) continue;
+                        return URL.createObjectURL(blob);
+                    } catch(e) { /* try next */ }
+                }
+                throw new Error('POLL_ALL_FAIL');
+            }
 
-                if (status) status.textContent = 'FLUX: GENERATING...';
+            // Strategy 2: Lexica search via CORS proxy
+            async function tryLexica() {
+                if (status) status.textContent = 'LEXICA: SEARCHING...';
+                var res = await proxyFetch('https://lexica.art/api/v1/search?q=' + encodeURIComponent(prompt));
+                var data = await res.json();
+                if (!data.images || data.images.length === 0) throw new Error('NO_RESULTS');
+                var pick = data.images[Math.floor(Math.random() * Math.min(10, data.images.length))];
+                var imgUrl = pick.src || pick.srcSmall;
+                if (!imgUrl) throw new Error('NO_SRC');
+                if (status) status.textContent = 'DOWNLOADING...';
+                var imgRes = await proxyFetch(imgUrl);
+                var blob = await imgRes.blob();
+                return URL.createObjectURL(blob);
+            }
 
-                // 90s timeout — Flux renders are slow but prompt-adherent
-                var controller = new AbortController();
-                var tid = setTimeout(function() { controller.abort(); }, 90000);
-                var res = await fetch(url, { signal: controller.signal });
-                clearTimeout(tid);
-
-                if (!res.ok) throw new Error('FLUX_HTTP_' + res.status);
+            // Strategy 3: Unsplash search (photo search by keyword, CORS-native)
+            async function tryUnsplash() {
+                if (status) status.textContent = 'UNSPLASH: SEARCHING...';
+                // Unsplash Source API — random photo matching query, no key needed
+                var url = 'https://source.unsplash.com/1280x720/?' + encodeURIComponent(prompt) + '&sig=' + Date.now();
+                var res = await fetch(url);
+                if (!res.ok) throw new Error('UNSPLASH_' + res.status);
                 var blob = await res.blob();
-                if (blob.size < 1000 || !blob.type.startsWith('image/')) throw new Error('FLUX_INVALID_RESPONSE');
+                if (blob.size < 1000) throw new Error('UNSPLASH_EMPTY');
+                return URL.createObjectURL(blob);
+            }
 
-                var blobUrl = URL.createObjectURL(blob);
-                await injectAIImage(blobUrl, 'FLUX_' + prompt.substring(0, 20).replace(/\s+/g, '_'));
-                if (status) { status.textContent = 'FLUX → MEDIA DECK'; status.style.color = 'var(--g)'; }
-                log('NEURAL: FLUX_INJECTED');
+            var strategies = [
+                { name: 'POLLINATIONS', fn: tryPollinations },
+                { name: 'LEXICA', fn: tryLexica },
+                { name: 'UNSPLASH', fn: tryUnsplash }
+            ];
 
-            } catch(err) {
-                if (status) { status.textContent = 'FLUX_FAIL: ' + err.message; status.style.color = 'var(--r)'; }
-                log('NEURAL_ERROR: FLUX_FAIL (' + err.message + ')');
+            var success = false;
+            for (var s = 0; s < strategies.length; s++) {
+                try {
+                    var blobUrl = await strategies[s].fn();
+                    await injectAIImage(blobUrl, 'AI_' + prompt.substring(0, 20).replace(/\s+/g, '_'));
+                    if (status) { status.textContent = strategies[s].name + ' → MEDIA DECK'; status.style.color = 'var(--g)'; }
+                    log('NEURAL: ' + strategies[s].name + '_INJECTED');
+                    success = true;
+                    break;
+                } catch(err) {
+                    log('NEURAL: ' + strategies[s].name + '_FAIL (' + err.message + ')');
+                    if (s < strategies.length - 1) log('NEURAL: TRYING → ' + strategies[s + 1].name);
+                }
+            }
+
+            if (!success) {
+                if (status) { status.textContent = 'ALL_SOURCES_FAILED'; status.style.color = 'var(--r)'; }
+                log('NEURAL_ERROR: ALL_STRATEGIES_EXHAUSTED');
             }
 
             setTimeout(() => { APP.neural.generating = false; if (btn) btn.classList.remove('on'); }, 1000);
@@ -5910,20 +5914,6 @@ document.addEventListener('click', (e) => {
     if (id === 'btn-go-live') applyAudioDuck(true);
     if (id === 'btn-end' || id === 'btn-end-live' || id === 'btn-kill') applyAudioDuck(false);
 }, true);
-
-// FOLD/COLLAPSE TOGGLE — SESSION_LAB & P2P_E2E_CALL
-document.querySelectorAll('.fold-header').forEach(function(header) {
-    header.addEventListener('click', function() {
-        var moduleId = this.getAttribute('data-fold');
-        var module = document.getElementById(moduleId);
-        if (!module) return;
-        var content = module.querySelector('.fold-content');
-        var icon = this.querySelector('.fold-icon');
-        if (!content) return;
-        content.classList.toggle('hidden');
-        if (icon) icon.textContent = content.classList.contains('hidden') ? '[+]' : '[−]';
-    });
-});
 
 </script>
 </body>
