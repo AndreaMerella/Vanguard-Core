@@ -1560,13 +1560,15 @@ const GHOST_UI_GUIDE = {
 };
 
 // ========== PUTER.AI CHAT INTEGRATION ==========
-const GHOST_SYSTEM_PROMPT = `You are GHOST, the VNGRD VJ engine co-pilot. HARD RULES:
-1. LANGUAGE MIRROR: Detect the user's language and slang. If they speak Scouse, you speak Scouse. Dutch? Dutch. Napoletano? Napoletano. Patois? Patois. Always mirror exactly.
-2. MAX 10 WORDS per response. Never exceed this. Be blunt and witty.
-3. VJ ONLY: You are a visual jockey assistant. NEVER give financial, medical, legal, or investment advice. NEVER discuss crypto prices, trading, stocks, or money. If asked, reply only: "Not my gig. I do visuals."
-4. NO markdown, no asterisks, no bullet points, no links, no URLs. Plain text only.
-5. If the user mentions a feature or asks how to do something, include [HIGHLIGHT:key] AND [EXEC:key] to pulse the button and execute it. Valid keys for HIGHLIGHT: ${Object.keys(GHOST_UI_GUIDE).join(', ')}. Valid keys for EXEC: ${Object.keys(GHOST_INTENT_MAP).join(', ')}.
-6. State: FPS={fps}, QUEUE={media}, AUDIO={audio}, THEME={theme}.`;
+const GHOST_SYSTEM_PROMPT = `You are GHOST, the VNGRD VJ console guide. ABSOLUTE RULES YOU MUST OBEY:
+- ONLY talk about this VJ console and its buttons/features. Nothing else. Ever.
+- MAX 10 WORDS. Count them. Never exceed 10 words in your reply.
+- Mirror the user's language/dialect exactly. Scouse=Scouse, Dutch=Dutch, Napoletano=Napoletano.
+- NEVER give financial, medical, legal, or investment advice. Reply "Not my gig. Visuals only." if asked.
+- NO markdown, no asterisks, no bullet points, no links, no URLs, no lists.
+- If user mentions a feature, add [HIGHLIGHT:key] and [EXEC:key]. Valid HIGHLIGHT keys: ${Object.keys(GHOST_UI_GUIDE).join(', ')}. Valid EXEC keys: ${Object.keys(GHOST_INTENT_MAP).join(', ')}.
+- For greetings just say something like "Yo. Type help." or "Ready. What we hitting?" — under 10 words.
+- You guide users through the VNGRD VJ interface. Buttons, effects, media, audio. That is your entire world.`;
 
 async function ghostAIChat(userMsg) {
     const systemPrompt = GHOST_SYSTEM_PROMPT
@@ -1576,17 +1578,32 @@ async function ghostAIChat(userMsg) {
         .replace('{theme}', APP.state.theme || 'cyan');
 
     try {
-        const response = await puter.ai.chat(userMsg, { systemPrompt: systemPrompt });
+        // Build proper message array — system role enforced, user message prefixed with reminder
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user',   content: '[REMEMBER: Max 10 words. VJ console guide only. Mirror my language.] ' + userMsg }
+        ];
+        const response = await puter.ai.chat(messages);
         const raw = typeof response === 'string' ? response
             : (response?.message?.content || response?.text || String(response));
-        // Strip any URLs, markdown links, or iframe tags the model might sneak in
-        const sanitised = raw.replace(/https?:\/\/\S+/gi, '')
+        // Preserve [EXEC:x] and [HIGHLIGHT:x] tags before sanitising
+        const tags = [];
+        raw.replace(/\[(EXEC|HIGHLIGHT):\w+\]/gi, m => { tags.push(m); return ''; });
+        // Sanitise: strip URLs, markdown links, HTML, iframes, formatting chars
+        let sanitised = raw.replace(/\[(EXEC|HIGHLIGHT):\w+\]/gi, '')
+            .replace(/https?:\/\/\S+/gi, '')
             .replace(/\[.*?\]\(.*?\)/g, '')
             .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
             .replace(/<a[\s\S]*?<\/a>/gi, '')
             .replace(/<[^>]+>/g, '')
+            .replace(/[*_~`#]/g, '')
             .trim();
-        return sanitised || null;
+        // HARD TRUNCATE: first sentence only, max 15 words — no walls of text
+        sanitised = sanitised.split(/[.!?\n]/)[0].trim();
+        const words = sanitised.split(/\s+/);
+        if (words.length > 15) sanitised = words.slice(0, 15).join(' ');
+        // Re-attach tags so ghostProcessAIResponse can parse them
+        return (sanitised + ' ' + tags.join(' ')).trim() || null;
     } catch (e) {
         console.warn('GHOST_AI_ERR:', e);
         return null;
@@ -1637,12 +1654,9 @@ function _ghostIdleTick() {
     const term = $('ghost-terminal');
     if (!term || term.style.display !== 'flex' || _ghostIdlePaused) return;
     const tip = _ghostTips[_ghostTipIndex % _ghostTips.length];
-    // Try AI translation into user's detected dialect, fall back to English tip
-    (async () => {
-        const translated = await ghostAIChat('Translate this VJ tip into whatever language/dialect the user last spoke. Keep under 10 words. Tip: ' + tip.msg);
-        ghostLog(translated || tip.msg, 'ai');
-        if (GHOST_UI_GUIDE[tip.key]) ghostHighlight(GHOST_UI_GUIDE[tip.key].id);
-    })();
+    // Show tip directly — no AI call for idle hints (keeps it instant and reliable)
+    ghostLog(tip.msg, 'ai');
+    if (GHOST_UI_GUIDE[tip.key]) ghostHighlight(GHOST_UI_GUIDE[tip.key].id);
     _ghostTipIndex++;
 }
 
