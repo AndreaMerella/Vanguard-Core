@@ -502,7 +502,7 @@
         .sec-dot.gold { background: var(--y); box-shadow: 0 0 6px var(--y); }
         .sec-body { padding: 10px 12px; }
         #session-lab-body, #p2p-call-body { max-height: 45px; overflow: hidden; transition: max-height 0.3s ease; }
-        #gif-host img { position: fixed; top: 0; left: 0; width: 1px !important; height: 1px !important; opacity: 1 !important; z-index: 9999; pointer-events: none; }
+        #gif-host img { position: fixed; top: 0; left: 0; width: 10px !important; height: 10px !important; opacity: 0.01 !important; z-index: -1; pointer-events: none; will-change: contents; }
         
         /* VNGRD BUTTONS - DIGITAL SNAP */
         .btn { display: block; width: 100%; padding: 8px 10px; margin-bottom: 6px; background: linear-gradient(180deg, #0f0f14 0%, #0a0a0e 100%); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-align: left; transition: all 0.05s step-end; }
@@ -1179,6 +1179,7 @@ body.shooting-mode #btn-shooting {
                     <div id="track-info">NO_TRACK</div>
                 </div>
                 <button class="btn" id="btn-audio">LOAD_AUDIO</button>
+                <button class="btn" id="btn-mute-vid" style="font-size:8px;">MUTE_VID: OFF</button>
                 <div class="audio-ctrl-row">
                     <button class="btn btn-compact" id="btn-prev-track"><svg width="10" height="10" viewBox="0 0 12 12"><path fill="currentColor" d="M2 2h2v8H2zm2 4l6 4V2z"/></svg></button>
                     <button class="btn btn-compact" id="btn-play-pause"><svg width="10" height="10" viewBox="0 0 12 12" id="icon-play-state"><path fill="currentColor" d="M3 2v8l7-4z"/></svg></button>
@@ -1331,7 +1332,7 @@ body.shooting-mode #btn-shooting {
     <input type="file" id="file-vgd" accept=".vgd,.json">
     <audio id="audio-el"></audio>
     <div id="media-container" style="display:none;"></div>
-    <div id="gif-host" style="position:fixed;top:0;left:0;width:1px;height:1px;z-index:9999;opacity:1;pointer-events:none;overflow:visible;"></div>
+    <div id="gif-host" style="position:fixed;top:0;left:0;width:10px;height:10px;z-index:-1;opacity:0.01;pointer-events:none;overflow:hidden;"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -1924,7 +1925,7 @@ function renderLoop(timestamp) {
     // --- SEISMIC ENGINE (Random shake on bass - OFF by default) ---
     let finalShakeX = 0, finalShakeY = 0;
     
-    if (APP.vj.rumbleEnabled && APP.audio.isPlaying && APP.audio.bassLevel > 150) {
+    if (APP.vj.rumbleEnabled && (APP.audio.isPlaying || APP.audio.videoSource) && APP.audio.bassLevel > 150) {
         // Classic random shake on bass hits (like v22.1)
         const intensity = (APP.audio.bassLevel - 150) / 100 * 8;
         finalShakeX = (Math.random() - 0.5) * intensity;
@@ -2803,7 +2804,7 @@ function hideLowerThird() { $('lower-third').classList.remove('visible'); APP.lo
 
 // AUDIO ENGINEER IMPLEMENTATION
 APP.audio.element = $('audio-el');
-function loadAudioFiles(input) { Array.from(input.files).forEach(file => { APP.audio.playlist.push({ url: URL.createObjectURL(file), name: file.name.replace(/\.[^.]+$/, '') }); }); $('audio-dot').classList.remove('off'); if (!APP.audio.isPlaying && APP.audio.playlist.length) playTrack(0); log(`AUDIO: +${input.files.length}`); }
+function loadAudioFiles(input) { Array.from(input.files).forEach(file => { APP.audio.playlist.push({ url: URL.createObjectURL(file), name: file.name.replace(/\.[^.]+$/, '') }); }); $('audio-dot').classList.remove('off'); if (!APP.audio.isPlaying && APP.audio.playlist.length) { disconnectVideoAudio(); playTrack(0); } log(`AUDIO: +${input.files.length}`); }
 
 function playTrack(idx) {
     if (!APP.audio.playlist.length) return;
@@ -3722,6 +3723,14 @@ document.addEventListener('DOMContentLoaded', () => {
     $('lt-title').oninput = e => { if (APP.lowerThird.visible) $('lt-title-text').textContent = e.target.value; };
     $('lt-sub').oninput = e => { if (APP.lowerThird.visible) $('lt-subtitle-text').textContent = e.target.value; };
     $('btn-audio').onclick = () => $('file-audio').click(); $('file-audio').onchange = e => loadAudioFiles(e.target);
+
+    $('btn-mute-vid').onclick = () => {
+        var vid = APP.audio.videoSource;
+        if (vid) {
+            if (vid.muted) { vid.muted = false; $('btn-mute-vid').textContent = 'MUTE_VID: OFF'; $('btn-mute-vid').classList.remove('on'); }
+            else { vid.muted = true; $('btn-mute-vid').textContent = 'MUTE_VID: ON'; $('btn-mute-vid').classList.add('on'); }
+        } else { log('NO_VIDEO_AUDIO'); }
+    };
     
     // NEW COMPACT AUDIO
     $('btn-next-track').onclick = nextTrack; 
