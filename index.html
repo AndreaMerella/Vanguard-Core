@@ -2416,6 +2416,7 @@ if ($('btn-set-station')) {
             bug.style.background = 'transparent';
             APP.bug.text = text;
         }
+        sendUISync('STATION_LOGO', { text: text });
         log('STATION: ' + text.toUpperCase());
     };
 }
@@ -3723,9 +3724,12 @@ document.addEventListener('DOMContentLoaded', () => {
         $('cycle-slider-wrap').style.display = APP.state.isCycle ? 'block' : 'none';
     };
 
-    $('btn-lt-guest').onclick = () => showLowerThird('guest'); $('btn-lt-track').onclick = () => showLowerThird('track'); $('btn-lt-breaking').onclick = () => showLowerThird('breaking'); $('btn-lt-off').onclick = hideLowerThird;
-    $('lt-title').oninput = e => { if (APP.lowerThird.visible) $('lt-title-text').textContent = e.target.value; };
-    $('lt-sub').oninput = e => { if (APP.lowerThird.visible) $('lt-subtitle-text').textContent = e.target.value; };
+    $('btn-lt-guest').onclick = () => { showLowerThird('guest'); sendUISync('LOWER_THIRD', { action: 'show', preset: 'guest', title: $('lt-title-text').textContent, subtitle: $('lt-subtitle-text').textContent }); };
+    $('btn-lt-track').onclick = () => { showLowerThird('track'); sendUISync('LOWER_THIRD', { action: 'show', preset: 'track', title: $('lt-title-text').textContent, subtitle: $('lt-subtitle-text').textContent }); };
+    $('btn-lt-breaking').onclick = () => { showLowerThird('breaking'); sendUISync('LOWER_THIRD', { action: 'show', preset: 'breaking', title: $('lt-title-text').textContent, subtitle: $('lt-subtitle-text').textContent }); };
+    $('btn-lt-off').onclick = () => { hideLowerThird(); sendUISync('LOWER_THIRD', { action: 'hide' }); };
+    $('lt-title').oninput = e => { if (APP.lowerThird.visible) { $('lt-title-text').textContent = e.target.value; sendUISync('LOWER_THIRD', { action: 'show', preset: APP.lowerThird.preset, title: $('lt-title-text').textContent, subtitle: $('lt-subtitle-text').textContent }); } };
+    $('lt-sub').oninput = e => { if (APP.lowerThird.visible) { $('lt-subtitle-text').textContent = e.target.value; sendUISync('LOWER_THIRD', { action: 'show', preset: APP.lowerThird.preset, title: $('lt-title-text').textContent, subtitle: $('lt-subtitle-text').textContent }); } };
     $('btn-audio').onclick = () => $('file-audio').click(); $('file-audio').onchange = e => loadAudioFiles(e.target);
 
     $('btn-mute-vid').onclick = () => {
@@ -4809,7 +4813,8 @@ $('btn-init-peer').onclick = () => {
             peer: new Peer(peerId),
             call: null,
             incomingCall: null, // Staging area for ringing calls
-            localStream: null
+            localStream: null,
+            dataConn: null
         };
         
         APP.peer.peer.on('open', (id) => {
@@ -4846,7 +4851,28 @@ $('btn-init-peer').onclick = () => {
             // 4. Play a ring sound if you have one (optional)
             // new Audio('assets/ring.mp3').play().catch(e => {});
         });
-        
+
+        // --- INCOMING DATA CONNECTION (Guest Side) ---
+        APP.peer.peer.on('connection', (conn) => {
+            log('DATA_CHANNEL: INCOMING FROM ' + conn.peer);
+            conn.on('open', () => {
+                APP.peer.dataConn = conn;
+                log('DATA_CHANNEL: OPEN');
+            });
+            conn.on('data', (data) => {
+                try {
+                    const msg = typeof data === 'string' ? JSON.parse(data) : data;
+                    if (msg.type === 'UI_SYNC') handleUISync(msg);
+                } catch (e) {
+                    log('DATA_CHANNEL: PARSE_ERR');
+                }
+            });
+            conn.on('close', () => {
+                log('DATA_CHANNEL: CLOSED');
+                if (APP.peer.dataConn === conn) APP.peer.dataConn = null;
+            });
+        });
+
     } catch (e) {
         log('PEER INIT ERROR: ' + e.message);
     }
@@ -4927,7 +4953,26 @@ $('btn-call-guest').onclick = async () => {
         
         const call = APP.peer.peer.call(remoteId, stream);
         handleCallStream(call);
-        
+
+        // --- Establish parallel Data Channel for UI sync ---
+        const dataConn = APP.peer.peer.connect(remoteId);
+        dataConn.on('open', () => {
+            APP.peer.dataConn = dataConn;
+            log('DATA_CHANNEL: OPEN TO ' + remoteId);
+        });
+        dataConn.on('data', (data) => {
+            try {
+                const msg = typeof data === 'string' ? JSON.parse(data) : data;
+                if (msg.type === 'UI_SYNC') handleUISync(msg);
+            } catch (e) {
+                log('DATA_CHANNEL: PARSE_ERR');
+            }
+        });
+        dataConn.on('close', () => {
+            log('DATA_CHANNEL: CLOSED');
+            if (APP.peer.dataConn === dataConn) APP.peer.dataConn = null;
+        });
+
     } catch (e) {
         log('CALL_ERROR: ' + e.message);
         $('call-status').textContent = 'FAILED: ' + e.message;
@@ -4987,19 +5032,60 @@ $('btn-hangup').onclick = () => {
     endCallCleanup();
 };
 
+// --- P2P DATA SYNC: Send & Receive UI State ---
+function sendUISync(target, payload) {
+    if (APP.peer && APP.peer.dataConn && APP.peer.dataConn.open) {
+        APP.peer.dataConn.send(JSON.stringify({
+            type: 'UI_SYNC',
+            target: target,
+            payload: payload
+        }));
+        log('DATA_SYNC_SENT: ' + target);
+    }
+}
+
+function handleUISync(msg) {
+    if (msg.target === 'LOWER_THIRD') {
+        const lt = $('lower-third');
+        const container = lt.querySelector('.lt-container');
+        if (msg.payload.action === 'show') {
+            container.classList.remove('lt-guest', 'lt-track', 'lt-breaking');
+            container.classList.add('lt-' + msg.payload.preset);
+            $('lt-title-text').textContent = msg.payload.title;
+            $('lt-subtitle-text').textContent = msg.payload.subtitle;
+            lt.classList.add('visible');
+        } else if (msg.payload.action === 'hide') {
+            lt.classList.remove('visible');
+        }
+        log('DATA_SYNC_RECV: LOWER_THIRD/' + msg.payload.action);
+    } else if (msg.target === 'STATION_LOGO') {
+        const bug = $('station-bug');
+        if (bug) {
+            bug.textContent = msg.payload.text;
+            bug.style.display = 'block';
+            bug.style.background = 'transparent';
+        }
+        log('DATA_SYNC_RECV: STATION_LOGO');
+    }
+}
+
 function endCallCleanup() {
     if (APP.peer && APP.peer.localStream) {
         APP.peer.localStream.getTracks().forEach(t => t.stop());
     }
-    
+    if (APP.peer && APP.peer.dataConn) {
+        APP.peer.dataConn.close();
+        APP.peer.dataConn = null;
+    }
+
     APP.guest.isActive = false;
     APP.guest.stream = null;
     APP.peer.call = null;
     APP.peer.incomingCall = null;
-    
+
     $('call-status').textContent = 'DISCONNECTED';
     $('call-status').style.color = 'var(--text-dim)';
-    
+
     resetP2PButtons();
     log('CALL_ENDED_CLEANUP');
 }
