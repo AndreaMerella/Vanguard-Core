@@ -4862,8 +4862,12 @@ $('btn-init-peer').onclick = () => {
             conn.on('data', (data) => {
                 try {
                     const msg = typeof data === 'string' ? JSON.parse(data) : data;
+                    // Debug: confirm packet arrival before any DOM work
+                    console.log('RECEIVED P2P DATA:', msg);
+                    log('DATA_CHANNEL: RECV ' + (msg.target || 'UNKNOWN'));
                     if (msg.type === 'UI_SYNC') handleUISync(msg);
                 } catch (e) {
+                    console.error('DATA_CHANNEL PARSE ERROR:', e, data);
                     log('DATA_CHANNEL: PARSE_ERR');
                 }
             });
@@ -5041,31 +5045,37 @@ function sendUISync(target, payload) {
             payload: payload
         }));
         log('DATA_SYNC_SENT: ' + target);
+    } else {
+        log('[ERROR] DATA_CHANNEL_NOT_OPEN');
     }
 }
 
 function handleUISync(msg) {
     if (msg.target === 'LOWER_THIRD') {
         const lt = $('lower-third');
+        if (!lt) { log('[ERROR] SYNC: #lower-third NOT FOUND'); return; }
         const container = lt.querySelector('.lt-container');
+        if (!container) { log('[ERROR] SYNC: .lt-container NOT FOUND'); return; }
         if (msg.payload.action === 'show') {
             container.classList.remove('lt-guest', 'lt-track', 'lt-breaking');
             container.classList.add('lt-' + msg.payload.preset);
-            $('lt-title-text').textContent = msg.payload.title;
-            $('lt-subtitle-text').textContent = msg.payload.subtitle;
+            const titleEl = $('lt-title-text');
+            const subEl   = $('lt-subtitle-text');
+            if (titleEl) titleEl.textContent = msg.payload.title;
+            if (subEl)   subEl.textContent   = msg.payload.subtitle;
             lt.classList.add('visible');
+            log('DATA_SYNC_RECV: LT/' + msg.payload.preset + ' "' + msg.payload.title + '"');
         } else if (msg.payload.action === 'hide') {
             lt.classList.remove('visible');
+            log('DATA_SYNC_RECV: LT/HIDE');
         }
-        log('DATA_SYNC_RECV: LOWER_THIRD/' + msg.payload.action);
     } else if (msg.target === 'STATION_LOGO') {
         const bug = $('station-bug');
-        if (bug) {
-            bug.textContent = msg.payload.text;
-            bug.style.display = 'block';
-            bug.style.background = 'transparent';
-        }
-        log('DATA_SYNC_RECV: STATION_LOGO');
+        if (!bug) { log('[ERROR] SYNC: #station-bug NOT FOUND'); return; }
+        bug.textContent = msg.payload.text;
+        bug.style.display = 'block';
+        bug.style.background = 'transparent';
+        log('DATA_SYNC_RECV: STATION_LOGO "' + msg.payload.text + '"');
     }
 }
 
